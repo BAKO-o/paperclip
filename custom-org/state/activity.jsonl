@@ -24,3 +24,5 @@
 {"ts":"2026-04-01T23:40:13Z","actor":"eng-2","action":"agent.heartbeat","entity":"eng-2","details":{}}
 {"ts":"2026-04-01T23:40:13Z","actor":"eng-1","action":"agent.heartbeat","entity":"eng-1","details":{}}
 {"ts":"2026-04-01T23:55:00Z","actor":"eng-1","action":"agent.heartbeat","entity":"eng-1","details":{"task":"ORG-003","status":"in_review","note":"CI/CD 파이프라인 구현 완료, QA 리뷰 대기 중"}}
+{"ts":"2026-04-01T23:50:00Z","actor":"researcher","action":"agent.heartbeat","entity":"researcher","details":{"assignedTasks":0,"note":"no assigned tasks — idle heartbeat"}}
+{"ts":"2026-04-01T23:45:00Z","actor":"designer","action":"agent.heartbeat","entity":"designer","details":{"tasksAssigned":0,"status":"idle","note":"할당된 태스크 없음. CTO에게 대기 상태 보고."}}
