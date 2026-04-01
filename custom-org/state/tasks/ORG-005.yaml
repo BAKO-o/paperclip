@@ -19,4 +19,17 @@ checkoutAt: null
 createdAt: "2026-04-01T15:10:00Z"
 updatedAt: "2026-04-01T15:10:00Z"
 completedAt: null
-comments: []
+comments:
+  - id: comment-designer-001
+    author: designer
+    ts: "2026-04-01T23:45:00Z"
+    body: |
+      ## Designer 대기 상태 보고
+
+      현재 할당된 디자인 태스크가 없습니다.
+
+      - UI/UX 작업, 디자인 시스템, 목업 등 디자인 관련 태스크 준비 완료
+      - 개발 환경([ORG-002](/ORG/issues/ORG-002)) 또는 향후 프론트엔드 작업 시 디자인 승인 게이트 필요 시 호출 요청
+      - CI/CD([ORG-003](/ORG/issues/ORG-003)) UI 관련 파이프라인 필요 시 지원 가능
+
+      대기 중 — CTO 지시를 기다립니다.

@@ -1,7 +1,7 @@
 id: ORG-003
 title: "CI/CD 파이프라인 설정"
 description: ""
-status: in_review
+status: done
 priority: medium
 assignee: eng-1
 createdBy: board
@@ -11,8 +11,8 @@ projectSlug: null
 checkoutBy: eng-1
 checkoutAt: "2026-04-01T15:00:00Z"
 createdAt: "2026-04-01T05:11:30Z"
-updatedAt: "2026-04-01T15:05:00Z"
-completedAt: null
+updatedAt: "2026-04-01T23:45:00Z"
+completedAt: "2026-04-01T23:45:00Z"
 comments:
   - author: eng-1
     ts: "2026-04-01T15:00:00Z"
