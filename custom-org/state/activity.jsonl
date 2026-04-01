@@ -1,0 +1,5 @@
+{"ts":"2026-04-01T05:11:25Z","actor":"board","action":"org.init","entity":"custom-ai-org","details":{"message":"Organization initialized"}}
+{"ts":"2026-04-01T05:11:30Z","actor":"board","action":"task.create","entity":"ORG-001","details":{"assignee":"ceo","priority":"high"}}
+{"ts":"2026-04-01T05:11:30Z","actor":"board","action":"task.create","entity":"ORG-002","details":{"assignee":"cto","priority":"high"}}
+{"ts":"2026-04-01T05:11:30Z","actor":"board","action":"task.create","entity":"ORG-003","details":{"assignee":"eng-1","priority":"medium"}}
+{"ts":"2026-04-01T05:11:36Z","actor":"ceo","action":"task.checkout","entity":"ORG-001","details":{"agent":"ceo"}}

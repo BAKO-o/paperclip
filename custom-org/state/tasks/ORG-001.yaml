@@ -1,0 +1,16 @@
+id: ORG-001
+title: "조직 초기 설정 완료"
+description: ""
+status: in_progress
+priority: high
+assignee: ceo
+createdBy: board
+parentId: null
+goalSlug: company-mission
+projectSlug: null
+checkoutBy: ceo
+checkoutAt: "2026-04-01T05:11:36Z"
+createdAt: "2026-04-01T05:11:30Z"
+updatedAt: "2026-04-01T05:11:36Z"
+completedAt: null
+comments: []

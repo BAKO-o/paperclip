@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# org-init — Initialize the organization state files
+set -euo pipefail
+
+ORG_DIR="${ORG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+
+echo "Initializing Custom AI Organization..."
+echo "ORG_DIR: $ORG_DIR"
+
+# Create state directories
+mkdir -p "$STATE_DIR"/{tasks,agents,approvals}
+
+# Initialize counter if not exists
+if [ ! -f "$STATE_DIR/counter.yaml" ]; then
+  cat > "$STATE_DIR/counter.yaml" <<'EOF'
+prefix: ORG
+next: 1
+EOF
+  echo "  Created counter.yaml"
+fi
+
+# Initialize budgets if not exists
+if [ ! -f "$STATE_DIR/budgets.yaml" ]; then
+  PERIOD_START=$(date -u +"%Y-%m-01")
+  cat > "$STATE_DIR/budgets.yaml" <<EOF
+company:
+  monthlyCents: 200000
+  spentMonthlyCents: 0
+  periodStart: "$PERIOD_START"
+
+agents:
+  ceo:
+    monthlyCents: 50000
+    spentMonthlyCents: 0
+  cto:
+    monthlyCents: 40000
+    spentMonthlyCents: 0
+  eng-1:
+    monthlyCents: 30000
+    spentMonthlyCents: 0
+  eng-2:
+    monthlyCents: 30000
+    spentMonthlyCents: 0
+  qa-lead:
+    monthlyCents: 25000
+    spentMonthlyCents: 0
+EOF
+  echo "  Created budgets.yaml"
+fi
+
+# Initialize agent state files
+for agent_dir in "$ORG_DIR"/agents/*/; do
+  slug=$(basename "$agent_dir")
+  state_file="$STATE_DIR/agents/$slug.yaml"
+  if [ ! -f "$state_file" ]; then
+    NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    cat > "$state_file" <<EOF
+slug: $slug
+status: active
+lastHeartbeatAt: null
+spentMonthlyCents: 0
+initializedAt: "$NOW"
+EOF
+    echo "  Created agent state: $slug"
+  fi
+done
+
+# Initialize activity log
+if [ ! -f "$STATE_DIR/activity.jsonl" ]; then
+  NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  echo "{\"ts\":\"$NOW\",\"actor\":\"board\",\"action\":\"org.init\",\"entity\":\"custom-ai-org\",\"details\":{\"message\":\"Organization initialized\"}}" > "$STATE_DIR/activity.jsonl"
+  echo "  Created activity.jsonl"
+fi
+
+echo ""
+echo "Organization initialized successfully!"
+echo ""
+echo "Next steps:"
+echo "  1. Run 'org status' to see the dashboard"
+echo "  2. Run 'org task create --title \"...\" --assignee ceo --priority high' to create a task"
+echo "  3. Use '/org-heartbeat' in Claude Code to run an agent heartbeat"

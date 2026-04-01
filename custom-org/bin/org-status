@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+# org-status — Organization dashboard
+set -euo pipefail
+
+ORG_DIR="${ORG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+
+section_orgchart() {
+  echo "=== Organization Chart ==="
+  echo ""
+
+  for agent_dir in "$ORG_DIR"/agents/*/; do
+    [ -d "$agent_dir" ] || continue
+    local slug
+    slug=$(basename "$agent_dir")
+
+    local agents_file="$agent_dir/AGENTS.md"
+    local state_file="$STATE_DIR/agents/$slug.yaml"
+
+    local name title reports_to status
+    name=$(grep "^name:" "$agents_file" 2>/dev/null | sed 's/^name: *//' || echo "$slug")
+    title=$(grep "^title:" "$agents_file" 2>/dev/null | sed 's/^title: *//' || echo "")
+    reports_to=$(grep "^reportsTo:" "$agents_file" 2>/dev/null | awk '{print $2}' || echo "null")
+
+    if [ -f "$state_file" ]; then
+      status=$(grep "^status:" "$state_file" | awk '{print $2}')
+    else
+      status="unknown"
+    fi
+
+    if [ "$reports_to" = "null" ]; then
+      echo "Board (Human)"
+      echo "└── $name ($status) — $title"
+    fi
+  done
+
+  # Print subordinates
+  for agent_dir in "$ORG_DIR"/agents/*/; do
+    [ -d "$agent_dir" ] || continue
+    local slug
+    slug=$(basename "$agent_dir")
+    local agents_file="$agent_dir/AGENTS.md"
+    local state_file="$STATE_DIR/agents/$slug.yaml"
+
+    local reports_to
+    reports_to=$(grep "^reportsTo:" "$agents_file" 2>/dev/null | awk '{print $2}' || echo "null")
+
+    if [ "$reports_to" != "null" ]; then
+      local name title status
+      name=$(grep "^name:" "$agents_file" 2>/dev/null | sed 's/^name: *//' || echo "$slug")
+      title=$(grep "^title:" "$agents_file" 2>/dev/null | sed 's/^title: *//' || echo "")
+      if [ -f "$state_file" ]; then
+        status=$(grep "^status:" "$state_file" | awk '{print $2}')
+      else
+        status="unknown"
+      fi
+
+      # Determine indent based on depth
+      local depth=2
+      local parent="$reports_to"
+      while [ "$parent" != "null" ] && [ -f "$ORG_DIR/agents/$parent/AGENTS.md" ]; do
+        parent=$(grep "^reportsTo:" "$ORG_DIR/agents/$parent/AGENTS.md" 2>/dev/null | awk '{print $2}' || echo "null")
+        depth=$((depth + 1))
+      done
+
+      local indent=""
+      for ((i=1; i<depth; i++)); do indent="$indent    "; done
+      echo "${indent}├── $name ($status) — $title"
+    fi
+  done
+
+  echo ""
+}
+
+section_taskboard() {
+  echo "=== Task Board ==="
+  echo ""
+
+  if [ ! -d "$STATE_DIR/tasks" ] || [ -z "$(ls -A "$STATE_DIR/tasks" 2>/dev/null)" ]; then
+    echo "  (no tasks)"
+    echo ""
+    return
+  fi
+
+  for status in backlog todo in_progress in_review blocked done cancelled; do
+    local count=0
+    local entries=""
+
+    for task_file in "$STATE_DIR"/tasks/*.yaml; do
+      [ -f "$task_file" ] || continue
+      local tstatus
+      tstatus=$(grep "^status:" "$task_file" | awk '{print $2}')
+      if [ "$tstatus" = "$status" ]; then
+        local tid priority assignee title
+        tid=$(grep "^id:" "$task_file" | awk '{print $2}')
+        priority=$(grep "^priority:" "$task_file" | awk '{print $2}')
+        assignee=$(grep "^assignee:" "$task_file" | awk '{print $2}')
+        title=$(grep "^title:" "$task_file" | sed 's/^title: *//' | tr -d '"')
+        entries="$entries  $tid [$priority] $title ($assignee)\n"
+        count=$((count + 1))
+      fi
+    done
+
+    local label
+    label=$(echo "$status" | tr '[:lower:]' '[:upper:]')
+    echo "$label ($count)"
+    if [ "$count" -gt 0 ]; then
+      printf "$entries"
+    fi
+    echo ""
+  done
+}
+
+section_budget() {
+  echo "=== Budget Summary ==="
+  echo ""
+
+  if [ ! -f "$STATE_DIR/budgets.yaml" ]; then
+    echo "  (no budget data)"
+    echo ""
+    return
+  fi
+
+  local period
+  period=$(grep "periodStart:" "$STATE_DIR/budgets.yaml" | head -1 | awk '{print $2}' | tr -d '"')
+  echo "Period: $period"
+  echo ""
+
+  # Read agent budgets
+  local in_agents=0
+  while IFS= read -r line; do
+    if echo "$line" | grep -q "^agents:"; then
+      in_agents=1
+      continue
+    fi
+    if [ "$in_agents" -eq 1 ]; then
+      if echo "$line" | grep -q "^  [a-z]" && echo "$line" | grep -q ":$"; then
+        local agent_slug
+        agent_slug=$(echo "$line" | sed 's/^ *//' | tr -d ':')
+        local budget spent pct bar
+        budget=$(grep -A2 "^  $agent_slug:" "$STATE_DIR/budgets.yaml" | grep "monthlyCents:" | awk '{print $2}')
+        spent=$(grep -A2 "^  $agent_slug:" "$STATE_DIR/budgets.yaml" | grep "spentMonthlyCents:" | awk '{print $2}')
+
+        if [ -n "$budget" ] && [ "$budget" -gt 0 ] 2>/dev/null; then
+          pct=$((spent * 100 / budget))
+          local budget_dollars spent_dollars
+          budget_dollars=$(printf "%d.%02d" $((budget / 100)) $((budget % 100)))
+          spent_dollars=$(printf "%d.%02d" $((spent / 100)) $((spent % 100)))
+
+          # Progress bar
+          local filled=$((pct / 10))
+          local empty=$((10 - filled))
+          bar=""
+          for ((i=0; i<filled; i++)); do bar="${bar}#"; done
+          for ((i=0; i<empty; i++)); do bar="${bar}."; done
+
+          local warn=""
+          [ "$pct" -ge 80 ] && warn=" WARNING"
+          [ "$pct" -ge 100 ] && warn=" EXCEEDED"
+
+          printf "  %-12s \$%8s / \$%8s  [%s] %d%%%s\n" "$agent_slug" "$spent_dollars" "$budget_dollars" "$bar" "$pct" "$warn"
+        fi
+      fi
+    fi
+  done < "$STATE_DIR/budgets.yaml"
+
+  echo ""
+}
+
+section_activity() {
+  echo "=== Recent Activity (last 10) ==="
+  echo ""
+
+  if [ ! -f "$STATE_DIR/activity.jsonl" ]; then
+    echo "  (no activity)"
+    echo ""
+    return
+  fi
+
+  tail -10 "$STATE_DIR/activity.jsonl" | while IFS= read -r line; do
+    # Simple parsing without jq
+    local ts actor action entity
+    ts=$(echo "$line" | grep -o '"ts":"[^"]*"' | cut -d'"' -f4 | cut -c1-16 | tr 'T' ' ')
+    actor=$(echo "$line" | grep -o '"actor":"[^"]*"' | cut -d'"' -f4)
+    action=$(echo "$line" | grep -o '"action":"[^"]*"' | cut -d'"' -f4)
+    entity=$(echo "$line" | grep -o '"entity":"[^"]*"' | cut -d'"' -f4)
+    echo "  [$ts] $actor: $action $entity"
+  done
+
+  echo ""
+}
+
+section_approvals() {
+  echo "=== Pending Approvals ==="
+  echo ""
+
+  if [ ! -d "$STATE_DIR/approvals" ] || [ -z "$(ls -A "$STATE_DIR/approvals" 2>/dev/null)" ]; then
+    echo "  (none)"
+    echo ""
+    return
+  fi
+
+  local found=0
+  for f in "$STATE_DIR"/approvals/*.yaml; do
+    [ -f "$f" ] || continue
+    local status
+    status=$(grep "^status:" "$f" | awk '{print $2}')
+    if [ "$status" = "pending" ]; then
+      found=1
+      local id type proposed_by
+      id=$(grep "^id:" "$f" | awk '{print $2}')
+      type=$(grep "^type:" "$f" | awk '{print $2}')
+      proposed_by=$(grep "^proposedBy:" "$f" | awk '{print $2}')
+      echo "  $id [$type] proposed by $proposed_by — PENDING"
+    fi
+  done
+
+  [ "$found" -eq 0 ] && echo "  (none)"
+  echo ""
+}
+
+# Main
+case "${1:-all}" in
+  all|"")
+    section_orgchart
+    section_taskboard
+    section_budget
+    section_activity
+    section_approvals
+    ;;
+  orgchart)  section_orgchart ;;
+  tasks)     section_taskboard ;;
+  budget)    section_budget ;;
+  activity)  section_activity ;;
+  approvals) section_approvals ;;
+  help|--help|-h)
+    cat <<'USAGE'
+org status — Organization Dashboard
+
+Usage: org status [section]
+
+Sections:
+  all        Full dashboard (default)
+  orgchart   Organization chart
+  tasks      Task board (kanban)
+  budget     Budget summary
+  activity   Recent activity feed
+  approvals  Pending approvals
+USAGE
+    ;;
+  *) echo "Unknown section: $1"; exit 1 ;;
+esac

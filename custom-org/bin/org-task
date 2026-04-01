@@ -1,0 +1,278 @@
+#!/usr/bin/env bash
+# org-task — Task management subcommand
+set -euo pipefail
+
+ORG_DIR="${ORG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+TASKS_DIR="$STATE_DIR/tasks"
+
+log_activity() {
+  local actor="$1" action="$2" entity="$3" details="$4"
+  local ts
+  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  echo "{\"ts\":\"$ts\",\"actor\":\"$actor\",\"action\":\"$action\",\"entity\":\"$entity\",\"details\":$details}" >> "$STATE_DIR/activity.jsonl"
+}
+
+cmd_create() {
+  local title="" assignee="" priority="medium" parent="" goal="" project="" created_by="${ORG_AGENT_SLUG:-board}"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --title)      title="$2"; shift 2 ;;
+      --assignee)   assignee="$2"; shift 2 ;;
+      --priority)   priority="$2"; shift 2 ;;
+      --parent)     parent="$2"; shift 2 ;;
+      --goal)       goal="$2"; shift 2 ;;
+      --project)    project="$2"; shift 2 ;;
+      --created-by) created_by="$2"; shift 2 ;;
+      *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+  done
+
+  if [ -z "$title" ]; then
+    echo "Error: --title is required"
+    echo "Usage: org task create --title \"Task title\" [--assignee slug] [--priority critical|high|medium|low]"
+    exit 1
+  fi
+
+  # Read and increment counter
+  local prefix next task_id
+  prefix=$(grep "^prefix:" "$STATE_DIR/counter.yaml" | awk '{print $2}')
+  next=$(grep "^next:" "$STATE_DIR/counter.yaml" | awk '{print $2}')
+  task_id=$(printf "%s-%03d" "$prefix" "$next")
+
+  # Increment counter
+  local new_next=$((next + 1))
+  sed -i "s/^next: .*/next: $new_next/" "$STATE_DIR/counter.yaml"
+
+  # Create task file
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  cat > "$TASKS_DIR/$task_id.yaml" <<EOF
+id: $task_id
+title: "$title"
+description: ""
+status: todo
+priority: $priority
+assignee: ${assignee:-null}
+createdBy: $created_by
+parentId: ${parent:-null}
+goalSlug: ${goal:-null}
+projectSlug: ${project:-null}
+checkoutBy: null
+checkoutAt: null
+createdAt: "$now"
+updatedAt: "$now"
+completedAt: null
+comments: []
+EOF
+
+  log_activity "$created_by" "task.create" "$task_id" "{\"assignee\":\"${assignee:-null}\",\"priority\":\"$priority\"}"
+
+  echo "Created task: $task_id — $title"
+  [ -n "$assignee" ] && echo "  Assigned to: $assignee"
+  echo "  Priority: $priority"
+}
+
+cmd_list() {
+  local filter_status="" filter_assignee=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status)   filter_status="$2"; shift 2 ;;
+      --assignee) filter_assignee="$2"; shift 2 ;;
+      *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+  done
+
+  if [ ! -d "$TASKS_DIR" ] || [ -z "$(ls -A "$TASKS_DIR" 2>/dev/null)" ]; then
+    echo "No tasks found."
+    return
+  fi
+
+  printf "%-10s %-12s %-10s %-12s %s\n" "ID" "STATUS" "PRIORITY" "ASSIGNEE" "TITLE"
+  printf "%-10s %-12s %-10s %-12s %s\n" "---" "------" "--------" "--------" "-----"
+
+  for task_file in "$TASKS_DIR"/*.yaml; do
+    [ -f "$task_file" ] || continue
+
+    local id status priority assignee title
+    id=$(grep "^id:" "$task_file" | awk '{print $2}')
+    status=$(grep "^status:" "$task_file" | awk '{print $2}')
+    priority=$(grep "^priority:" "$task_file" | awk '{print $2}')
+    assignee=$(grep "^assignee:" "$task_file" | awk '{print $2}')
+    title=$(grep "^title:" "$task_file" | sed 's/^title: *//' | tr -d '"')
+
+    # Apply filters
+    if [ -n "$filter_status" ] && ! echo "$filter_status" | tr ',' '\n' | grep -qx "$status"; then
+      continue
+    fi
+    if [ -n "$filter_assignee" ] && [ "$assignee" != "$filter_assignee" ]; then
+      continue
+    fi
+
+    printf "%-10s %-12s %-10s %-12s %s\n" "$id" "$status" "$priority" "$assignee" "$title"
+  done
+}
+
+cmd_show() {
+  local task_id="$1"
+  local task_file="$TASKS_DIR/$task_id.yaml"
+
+  if [ ! -f "$task_file" ]; then
+    echo "Task not found: $task_id"
+    exit 1
+  fi
+
+  cat "$task_file"
+}
+
+cmd_update() {
+  local task_id="$1"; shift
+  local task_file="$TASKS_DIR/$task_id.yaml"
+
+  if [ ! -f "$task_file" ]; then
+    echo "Task not found: $task_id"
+    exit 1
+  fi
+
+  local new_status="" new_priority="" new_assignee="" comment="" actor="${ORG_AGENT_SLUG:-board}"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status)   new_status="$2"; shift 2 ;;
+      --priority) new_priority="$2"; shift 2 ;;
+      --assignee) new_assignee="$2"; shift 2 ;;
+      --comment)  comment="$2"; shift 2 ;;
+      --actor)    actor="$2"; shift 2 ;;
+      *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+  done
+
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local old_status
+  old_status=$(grep "^status:" "$task_file" | awk '{print $2}')
+
+  if [ -n "$new_status" ]; then
+    sed -i "s/^status: .*/status: $new_status/" "$task_file"
+    if [ "$new_status" = "done" ]; then
+      sed -i "s/^completedAt: .*/completedAt: \"$now\"/" "$task_file"
+    fi
+    log_activity "$actor" "task.update" "$task_id" "{\"previousStatus\":\"$old_status\",\"newStatus\":\"$new_status\"}"
+  fi
+
+  if [ -n "$new_priority" ]; then
+    sed -i "s/^priority: .*/priority: $new_priority/" "$task_file"
+  fi
+
+  if [ -n "$new_assignee" ]; then
+    sed -i "s/^assignee: .*/assignee: $new_assignee/" "$task_file"
+  fi
+
+  sed -i "s/^updatedAt: .*/updatedAt: \"$now\"/" "$task_file"
+
+  if [ -n "$comment" ]; then
+    # Append comment to the comments array
+    cat >> "$task_file" <<EOF
+  - author: $actor
+    body: "$comment"
+    at: "$now"
+EOF
+    log_activity "$actor" "task.comment" "$task_id" "{\"body\":\"$comment\"}"
+  fi
+
+  echo "Updated task: $task_id"
+  [ -n "$new_status" ] && echo "  Status: $old_status → $new_status"
+  [ -n "$new_priority" ] && echo "  Priority: $new_priority"
+  [ -n "$new_assignee" ] && echo "  Assignee: $new_assignee"
+  [ -n "$comment" ] && echo "  Comment added"
+}
+
+cmd_checkout() {
+  local task_id="$1"; shift
+  local agent=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --agent) agent="$2"; shift 2 ;;
+      *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+  done
+
+  if [ -z "$agent" ]; then
+    agent="${ORG_AGENT_SLUG:-}"
+    if [ -z "$agent" ]; then
+      echo "Error: --agent is required (or set ORG_AGENT_SLUG)"
+      exit 1
+    fi
+  fi
+
+  local task_file="$TASKS_DIR/$task_id.yaml"
+  if [ ! -f "$task_file" ]; then
+    echo "Task not found: $task_id"
+    exit 1
+  fi
+
+  # Check if already checked out by someone else
+  local current_checkout
+  current_checkout=$(grep "^checkoutBy:" "$task_file" | awk '{print $2}')
+  if [ "$current_checkout" != "null" ] && [ "$current_checkout" != "$agent" ]; then
+    echo "Error: Task $task_id is already checked out by $current_checkout"
+    exit 1
+  fi
+
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  sed -i "s/^checkoutBy: .*/checkoutBy: $agent/" "$task_file"
+  sed -i "s/^checkoutAt: .*/checkoutAt: \"$now\"/" "$task_file"
+  sed -i "s/^status: .*/status: in_progress/" "$task_file"
+  sed -i "s/^updatedAt: .*/updatedAt: \"$now\"/" "$task_file"
+
+  log_activity "$agent" "task.checkout" "$task_id" "{\"agent\":\"$agent\"}"
+
+  echo "Checked out task: $task_id → $agent"
+}
+
+# Route subcommand
+case "${1:-help}" in
+  create)   shift; cmd_create "$@" ;;
+  list|ls)  shift; cmd_list "$@" ;;
+  show)     shift; cmd_show "$@" ;;
+  update)   shift; cmd_update "$@" ;;
+  checkout) shift; cmd_checkout "$@" ;;
+  help|--help|-h)
+    cat <<'USAGE'
+org task — Task Management
+
+Commands:
+  create    Create a new task
+  list      List tasks (aliases: ls)
+  show      Show task details
+  update    Update a task
+  checkout  Checkout a task for an agent
+
+Create options:
+  --title <text>         Task title (required)
+  --assignee <slug>      Agent to assign
+  --priority <level>     critical|high|medium|low (default: medium)
+  --parent <task-id>     Parent task ID
+  --goal <goal-slug>     Goal slug
+  --project <proj-slug>  Project slug
+
+List options:
+  --status <statuses>    Comma-separated status filter
+  --assignee <slug>      Filter by assignee
+
+Update options:
+  --status <status>      New status
+  --priority <level>     New priority
+  --assignee <slug>      New assignee
+  --comment <text>       Add a comment
+  --actor <slug>         Who is making the update
+USAGE
+    ;;
+  *) echo "Unknown task subcommand: $1"; exit 1 ;;
+esac
