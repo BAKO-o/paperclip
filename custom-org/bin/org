@@ -8,11 +8,12 @@ ORG_DIR="${ORG_COMPANY_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 export ORG_DIR
 
 case "${1:-help}" in
-  init)     shift; "$ORG_DIR/bin/org-init" "$@" ;;
-  task)     shift; "$ORG_DIR/bin/org-task" "$@" ;;
-  agent)    shift; "$ORG_DIR/bin/org-agent" "$@" ;;
-  board)    shift; "$ORG_DIR/bin/org-board" "$@" ;;
-  status)   shift; "$ORG_DIR/bin/org-status" "$@" ;;
+  init)      shift; "$ORG_DIR/bin/org-init" "$@" ;;
+  task)      shift; "$ORG_DIR/bin/org-task" "$@" ;;
+  agent)     shift; "$ORG_DIR/bin/org-agent" "$@" ;;
+  board)     shift; "$ORG_DIR/bin/org-board" "$@" ;;
+  status)    shift; "$ORG_DIR/bin/org-status" "$@" ;;
+  heartbeat) shift; "$ORG_DIR/bin/org-heartbeat-run" "$@" ;;
   help|--help|-h)
     cat <<'USAGE'
 Custom AI Organization — Control Plane CLI
