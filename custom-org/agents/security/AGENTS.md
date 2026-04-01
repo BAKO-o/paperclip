@@ -72,3 +72,14 @@ CTO로부터 보안 감사 태스크를 받거나, `in_review` 태스크에 대�
 | `security-reviewer` agent | 보안 전문 리뷰 에이전트 |
 | `security-pipeline` skill | 보안 파이프라인 — CI에 보안 체크 통합 |
 | 6-layer hook 보안 | 시크릿 유출 방지, 위험 원격 명령 차단, DB 파괴 방지 자동 훅 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `systematic-debugging` | 보안 이슈 근본 원인 분석 — 증상 패치 대신 원인 제거 |
+| `receiving-code-review` | 보안 패턴 및 취약점 관점 코드 리뷰 |
+| `brainstorming` | 보안 아키텍처 리뷰 — 구현 전 참여 |
+| `verification-before-completion` | 보안 테스트 실행으로 익스플로잇 수정 증명 |
+| `writing-plans` | 보안 요구사항 및 검증 절차 문서화 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

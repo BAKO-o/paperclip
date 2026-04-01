@@ -80,3 +80,15 @@ eng-1, eng-2, qa-lead, designer, devops, security에게 태스크를 위임합�
 | `/handoff-verify` | 에이전트 간 작업 인수인계 검증 |
 | `architect` agent | 아키텍처 전문 에이전트 — 구조 설계, 의존성 분석 |
 | `team-orchestrator` skill | 팀 조율 스킬 — 다중 에이전트 협업 관리 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `brainstorming` | 아키텍처 결정 전 설계 리뷰 게이트 — 접근법 비교 후 승인 |
+| `writing-plans` | 복잡한 기능의 상세 구현 계획 — 원자적 태스크 분해 |
+| `subagent-driven-development` | 서브에이전트 위임 실행 — 2단계 리뷰 (스펙+품질) |
+| `dispatching-parallel-agents` | 독립적 문제 3개+ 동시 조사 — 병렬 에이전트 배포 |
+| `systematic-debugging` | 근본 원인 먼저 — 3번 수정 실패 시 아키텍처 의심 |
+| `requesting-code-review` | 코드 리뷰 서브에이전트 배포 — Critical→Important→Minor 순 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

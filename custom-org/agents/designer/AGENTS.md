@@ -70,3 +70,13 @@ CTO로부터 디자인 태스크를 할당받습니다.
 | `/plan` | 디자인 작업 계획 수립 |
 | `frontend-code-review` skill | 프론트엔드 코드의 디자인 일관성 리뷰 |
 | `cache-components` skill | Next.js 캐시 컴포넌트 — 디자인 성능 최적화 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `brainstorming` | 디자인 승인 게이트 — 와이어프레임/컴프 제공 후 구현 |
+| `writing-plans` | 디자인 요구사항을 구현 계획에 명시 |
+| `verification-before-completion` | 픽셀 퍼펙트 구현 확인 — 디자인 스펙 대비 검증 |
+| `receiving-code-review` | 시각적 구현의 디자인 스펙 준수 리뷰 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

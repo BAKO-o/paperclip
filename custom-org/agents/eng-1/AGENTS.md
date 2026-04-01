@@ -77,3 +77,15 @@ CTO로부터 구체적인 구현 태스크를 할당받습니다.
 | `/refactor-clean` | 리팩터링 — 코드 정리, 중복 제거, 구조 개선 |
 | `tdd-guide` agent | TDD 전문 에이전트 — 테스트 설계 가이드 |
 | `build-error-resolver` agent | 빌드 에러 자동 해결 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `test-driven-development` | RED→GREEN→REFACTOR — 테스트 먼저, 코드 나중 (Iron Law) |
+| `systematic-debugging` | 근본 원인 조사 후 수정 — 에러 읽기→재현→가설→검증 |
+| `executing-plans` | 사전 작성된 계획 순서대로 실행 — 블로커 시 즉시 중단 |
+| `verification-before-completion` | 완료 선언 전 테스트/빌드/린트 실제 실행 |
+| `using-git-worktrees` | 격리된 Git 워크스페이스 — 병렬 개발 시 충돌 방지 |
+| `receiving-code-review` | 리뷰 피드백 기술적 응답 — 빈말 금지, 검증 후 수정 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

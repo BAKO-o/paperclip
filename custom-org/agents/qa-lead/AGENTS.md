@@ -76,3 +76,14 @@ QA 리포트, 테스트 결과, 보안 감사 보고서, 디자인 리뷰 피드
 | `verify-agent` | 검증 전문 에이전트 — 작업 결과 품질 확인 |
 | `verification-engine` skill | 검증 엔진 — 다중 레이어 품질 게이트 |
 | `e2e-runner` agent | E2E 테스트 전문 실행 에이전트 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `test-driven-development` | 개발 전 품질 기준 정의 — 테스트 커버리지 요구사항 |
+| `systematic-debugging` | 재현 가능한 단계로 버그 조사 — 추측 금지 |
+| `verification-before-completion` | 독립적 테스트 결과 검증 — 조기 "완료" 선언 차단 |
+| `writing-plans` | 테스트 전략 및 커버리지 요구사항 정의 |
+| `requesting-code-review` | 테스트 가능성, 엣지 케이스 중심 리뷰 요청 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

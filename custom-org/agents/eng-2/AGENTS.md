@@ -76,3 +76,15 @@ UI 컴포넌트, 페이지, 코드 리뷰 피드백, 테스트.
 | `/commit-push-pr` | Git 워크플로우 자동화 |
 | `frontend-code-review` skill | 프론트엔드 전문 코드 리뷰 |
 | `e2e-runner` agent | E2E 테스트 전문 에이전트 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `test-driven-development` | RED→GREEN→REFACTOR — 컴포넌트 단위 테스트 먼저 |
+| `systematic-debugging` | UI 버그 근본 원인 조사 — 추측 금지, 증거 기반 |
+| `executing-plans` | 계획 순서대로 실행 — 모호하면 즉시 질문 |
+| `verification-before-completion` | UI 구현 검증 — 스크린샷 + 테스트 결과로 증명 |
+| `requesting-code-review` | 코드 리뷰 요청 — 디자인 일관성, 접근성 포함 |
+| `receiving-code-review` | 리뷰 수신 — "좋은 지적이세요!" 금지, 기술적 응답만 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

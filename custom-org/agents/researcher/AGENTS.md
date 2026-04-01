@@ -66,3 +66,13 @@ CEO로부터 리서치 태스크를 직접 받습니다.
 | `/explore` | 코드베이스 탐색 — 기존 구조 분석 및 이해 |
 | `/learn` | 새로운 기술/도구 학습 — 구조화된 학습 가이드 |
 | `continuous-learning-v2` skill | 지속적 학습 시스템 — 발견한 패턴 축적 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `brainstorming` | 데이터 아키텍처, 실험 프레임워크 설계 후 코딩 |
+| `writing-plans` | 실험 절차 및 검증 방법론 문서화 |
+| `verification-before-completion` | 통계적 유의성 및 재현 가능성 증명 |
+| `systematic-debugging` | 성능 이슈의 과학적 조사 — 경험적 추측 금지 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

@@ -82,3 +82,13 @@ CTO에게 기술적 업무를, Researcher에게 리서치 업무를 위임합니
 | `/orchestrate` | 멀티 에이전트 오케스트레이션 — 복잡한 작업 분배 |
 | `/next-task` | 다음 우선순위 작업 자동 선택 |
 | `planner` agent | 전문 기획 에이전트 — 상세 실행 계획 수립 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `brainstorming` | 구현 전 설계 승인 — 2-3개 접근법 제안 후 선택, 스펙 문서 생성 |
+| `writing-plans` | 2-5분 단위 원자적 태스크로 분해 — 모호한 표현 금지 |
+| `verification-before-completion` | 완료 선언 전 반드시 신선한 증거로 검증 |
+| `finishing-a-development-branch` | 개발 완료 후 통합 옵션 (머지/PR/보존/폐기) 관리 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조

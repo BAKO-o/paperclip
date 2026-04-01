@@ -75,3 +75,14 @@ CI/CD 파이프라인, 배포 스크립트, 인프라 코드, 모니터링 대�
 | `build-system` skill | 빌드 시스템 자동 감지 — npm, yarn, pnpm, Go, Cargo 등 |
 | `security-pipeline` skill | 배포 전 CWE Top 25 보안 체크 자동화 |
 | `verification-engine` skill | 배포 게이트 — 빌드/타입/린트/테스트/코드리뷰/보안 통합 검증 |
+
+### superpowers Methodology
+| Skill | 용도 |
+|-------|------|
+| `systematic-debugging` | 인프라 이슈 근본 원인 분석 — 증상 패치 금지 |
+| `test-driven-development` | IaC(Infrastructure as Code) 검증 — 테스트로 요구사항 정의 |
+| `writing-plans` | 배포 절차 및 롤백 계획 문서화 |
+| `verification-before-completion` | 배포 후 모니터링 + 헬스 체크로 검증 |
+| `using-git-worktrees` | 인프라 변경을 격리된 브랜치에서 관리 |
+
+> **필수 규율**: `standards/superpowers-methodology.md` 참조
