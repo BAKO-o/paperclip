@@ -304,6 +304,7 @@ body {
     <div class="form-group">
       <label>Slug (URL-safe ID)</label>
       <input type="text" id="new-agent-slug" placeholder="agent-slug">
+      <div id="slug-warning" style="color:var(--red);font-size:12px;margin-top:4px;display:none"></div>
     </div>
     <div class="form-group">
       <label>Title</label>
@@ -652,25 +653,36 @@ async function createAgent() {
   const name = document.getElementById('new-agent-name').value.trim();
   const slug = document.getElementById('new-agent-slug').value.trim();
   const title = document.getElementById('new-agent-title').value.trim();
-  if (!name || !slug) { alert('Name and Slug are required.'); return; }
-  const res = await fetch(API+'/api/agents', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      name, slug, title,
-      reportsTo: document.getElementById('new-agent-reports').value,
-      budgetMonthlyCents: parseInt(document.getElementById('new-agent-budget').value) || 20000,
-      instructions: document.getElementById('new-agent-instructions').value,
-    })
-  });
-  if (!res.ok) { try { const j = await res.json(); alert(j.error || 'Failed'); } catch(e) { alert('Request failed'); } return; }
-  hideModal('agent');
-  document.getElementById('new-agent-name').value = '';
-  document.getElementById('new-agent-slug').value = '';
-  document.getElementById('new-agent-title').value = '';
-  document.getElementById('new-agent-instructions').value = '';
-  document.getElementById('new-agent-budget').value = '20000';
-  fetchData();
+  if (!name || !slug) { alert('Name과 Slug를 입력해주세요.'); return; }
+  // Check for duplicate slug client-side
+  if (data.agents.some(a => a.slug === slug)) {
+    alert(`"${slug}" 에이전트가 이미 존재합니다. 다른 Slug를 입력해주세요.`);
+    return;
+  }
+  try {
+    const res = await fetch(API+'/api/agents', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, slug, title,
+        reportsTo: document.getElementById('new-agent-reports').value,
+        budgetMonthlyCents: parseInt(document.getElementById('new-agent-budget').value) || 20000,
+        instructions: document.getElementById('new-agent-instructions').value,
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      alert(errData && errData.error ? errData.error : '에이전트 생성에 실패했습니다.');
+      return;
+    }
+    hideModal('agent');
+    document.getElementById('new-agent-name').value = '';
+    document.getElementById('new-agent-slug').value = '';
+    document.getElementById('new-agent-title').value = '';
+    document.getElementById('new-agent-instructions').value = '';
+    document.getElementById('new-agent-budget').value = '20000';
+    fetchData();
+  } catch(e) { alert('서버 연결에 실패했습니다.'); }
 }
 
 async function updateTask(id, field, value) {
@@ -706,8 +718,22 @@ function esc(s) { const d=document.createElement('div'); d.textContent=s; return
 
 // ── Auto-name slug ──
 document.getElementById('new-agent-name')?.addEventListener('input', e => {
-  document.getElementById('new-agent-slug').value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  const slugEl = document.getElementById('new-agent-slug');
+  slugEl.value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  checkSlugDuplicate(slugEl.value);
 });
+document.getElementById('new-agent-slug')?.addEventListener('input', e => {
+  checkSlugDuplicate(e.target.value.trim());
+});
+function checkSlugDuplicate(slug) {
+  const warn = document.getElementById('slug-warning');
+  if (slug && data.agents.some(a => a.slug === slug)) {
+    warn.textContent = `"${slug}" 에이전트가 이미 존재합니다`;
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+}
 
 // ── Init ──
 fetchData();
