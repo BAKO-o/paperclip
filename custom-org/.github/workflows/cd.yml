@@ -1,0 +1,65 @@
+name: CD — Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      heartbeat_cron:
+        description: "Heartbeat cron schedule (default: */30 * * * *)"
+        required: false
+        default: "*/30 * * * *"
+      dashboard_port:
+        description: "Dashboard port (default: 8080)"
+        required: false
+        default: "8080"
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          HEARTBEAT_CRON: ${{ github.event.inputs.heartbeat_cron || '*/30 * * * *' }}
+          DASHBOARD_PORT: ${{ github.event.inputs.dashboard_port || '8080' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "$EC2_USER@$EC2_HOST" \
+            "cd \$(find /home -name 'custom-org' -maxdepth 4 2>/dev/null | head -1) && \
+             git pull origin main && \
+             HEARTBEAT_CRON='$HEARTBEAT_CRON' \
+             DASHBOARD_PORT='$DASHBOARD_PORT' \
+             bash deploy/setup-ec2.sh"
+
+      - name: Verify dashboard is up
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DASHBOARD_PORT: ${{ github.event.inputs.dashboard_port || '8080' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "$EC2_USER@$EC2_HOST" \
+            "sudo systemctl is-active ai-org-dashboard && echo 'Dashboard: running' || echo 'Dashboard: not running'"
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_STEP_SUMMARY
