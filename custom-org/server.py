@@ -402,7 +402,7 @@ class OrgHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/api/activity":
             self.json_response(get_activity(50))
         else:
-            self.send_error(404)
+            self.json_response({"error": "Not found"}, 404)
 
     def do_POST(self):
         content_length = int(self.headers.get("Content-Length", 0))
@@ -424,7 +424,7 @@ class OrgHandler(http.server.SimpleHTTPRequestHandler):
             if task:
                 self.json_response(task)
             else:
-                self.send_error(404, "Task not found")
+                self.json_response({"error": f"Task {task_id} not found"}, 404)
 
         elif path == "/api/agents":
             result = create_agent(data)
@@ -439,17 +439,17 @@ class OrgHandler(http.server.SimpleHTTPRequestHandler):
             if update_agent_status(slug, "paused"):
                 self.json_response({"status": "paused"})
             else:
-                self.send_error(404)
+                self.json_response({"error": f"Agent {slug} not found"}, 404)
 
         elif path.startswith("/api/agents/") and "/resume" in path:
             slug = path.split("/")[3]
             if update_agent_status(slug, "active"):
                 self.json_response({"status": "active"})
             else:
-                self.send_error(404)
+                self.json_response({"error": f"Agent {slug} not found"}, 404)
 
         else:
-            self.send_error(404)
+            self.json_response({"error": "Not found"}, 404)
 
     def json_response(self, data, code=200):
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")

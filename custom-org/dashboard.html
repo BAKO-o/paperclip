@@ -663,7 +663,7 @@ async function createAgent() {
       instructions: document.getElementById('new-agent-instructions').value,
     })
   });
-  if (!res.ok) { const t = await res.text(); alert('Failed: ' + t); return; }
+  if (!res.ok) { try { const j = await res.json(); alert(j.error || 'Failed'); } catch(e) { alert('Request failed'); } return; }
   hideModal('agent');
   document.getElementById('new-agent-name').value = '';
   document.getElementById('new-agent-slug').value = '';

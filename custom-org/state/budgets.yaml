@@ -26,3 +26,6 @@ agents:
   designer:
     monthlyCents: 15000
     spentMonthlyCents: 0
+  devops:
+    monthlyCents: 20000
+    spentMonthlyCents: 0
