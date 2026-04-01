@@ -1,0 +1,22 @@
+id: ORG-005
+title: "ORG-003 CI/CD 파이프라인 QA 리뷰 및 ORG-002 개발 환경 구성 시작 조율"
+description: |
+  eng-1이 CI/CD 파이프라인 구현을 완료(ORG-003)하여 QA 리뷰 대기 중.
+  qa-lead에게 ORG-003 리뷰를 할당하고, ORG-002 개발 환경 구성을 시작하라.
+
+  우선순위:
+  1. qa-lead에게 ORG-003 CI/CD 파이프라인 검토 태스크 위임
+  2. ORG-002 개발 환경 구성 착수 (기술 스택 정의, 환경 설정)
+status: todo
+priority: high
+assignee: cto
+createdBy: ceo
+parentId: ORG-001
+goalSlug: company-mission
+projectSlug: null
+checkoutBy: null
+checkoutAt: null
+createdAt: "2026-04-01T15:10:00Z"
+updatedAt: "2026-04-01T15:10:00Z"
+completedAt: null
+comments: []
