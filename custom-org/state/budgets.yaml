@@ -20,3 +20,9 @@ agents:
   qa-lead:
     monthlyCents: 25000
     spentMonthlyCents: 0
+  test-agent:
+    monthlyCents: 15000
+    spentMonthlyCents: 0
+  designer:
+    monthlyCents: 15000
+    spentMonthlyCents: 0

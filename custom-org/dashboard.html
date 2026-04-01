@@ -649,19 +649,27 @@ async function createTask() {
 }
 
 async function createAgent() {
-  await fetch(API+'/api/agents', {
+  const name = document.getElementById('new-agent-name').value.trim();
+  const slug = document.getElementById('new-agent-slug').value.trim();
+  const title = document.getElementById('new-agent-title').value.trim();
+  if (!name || !slug) { alert('Name and Slug are required.'); return; }
+  const res = await fetch(API+'/api/agents', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
-      name: document.getElementById('new-agent-name').value,
-      slug: document.getElementById('new-agent-slug').value,
-      title: document.getElementById('new-agent-title').value,
+      name, slug, title,
       reportsTo: document.getElementById('new-agent-reports').value,
-      budgetMonthlyCents: parseInt(document.getElementById('new-agent-budget').value),
+      budgetMonthlyCents: parseInt(document.getElementById('new-agent-budget').value) || 20000,
       instructions: document.getElementById('new-agent-instructions').value,
     })
   });
+  if (!res.ok) { const t = await res.text(); alert('Failed: ' + t); return; }
   hideModal('agent');
+  document.getElementById('new-agent-name').value = '';
+  document.getElementById('new-agent-slug').value = '';
+  document.getElementById('new-agent-title').value = '';
+  document.getElementById('new-agent-instructions').value = '';
+  document.getElementById('new-agent-budget').value = '20000';
   fetchData();
 }
 

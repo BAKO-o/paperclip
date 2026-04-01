@@ -327,11 +327,12 @@ def update_agent_status(slug, status, reason="manual"):
 
 def create_agent(data):
     slug = data.get("slug", "").strip().lower().replace(" ", "-")
+    slug = re.sub(r"[^a-z0-9\-]", "", slug)
     if not slug:
-        return None
+        return {"error": "Slug is required"}
     agent_dir = os.path.join(AGENTS_DIR, slug)
     if os.path.exists(agent_dir):
-        return None
+        return {"error": f"Agent '{slug}' already exists"}
 
     os.makedirs(agent_dir, exist_ok=True)
 
@@ -427,10 +428,11 @@ class OrgHandler(http.server.SimpleHTTPRequestHandler):
 
         elif path == "/api/agents":
             result = create_agent(data)
-            if result:
+            if result and "error" not in result:
                 self.json_response(result, 201)
             else:
-                self.send_error(400, "Agent creation failed (slug missing or already exists)")
+                err = result.get("error", "Agent creation failed") if result else "Agent creation failed"
+                self.json_response({"error": err}, 400)
 
         elif path.startswith("/api/agents/") and "/pause" in path:
             slug = path.split("/")[3]

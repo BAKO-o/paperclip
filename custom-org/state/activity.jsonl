@@ -4,3 +4,5 @@
 {"ts":"2026-04-01T05:11:30Z","actor":"board","action":"task.create","entity":"ORG-003","details":{"assignee":"eng-1","priority":"medium"}}
 {"ts":"2026-04-01T05:11:36Z","actor":"ceo","action":"task.checkout","entity":"ORG-001","details":{"agent":"ceo"}}
 {"ts": "2026-04-01T07:25:16Z", "actor": "board", "action": "task.create", "entity": "ORG-004", "details": {"assignee": "eng-2", "priority": "high"}}
+{"ts": "2026-04-01T08:09:55Z", "actor": "board", "action": "agent.create", "entity": "test-agent", "details": {"name": "Test Agent", "title": "Test Title"}}
+{"ts": "2026-04-01T08:11:07Z", "actor": "board", "action": "agent.create", "entity": "designer", "details": {"name": "Designer", "title": "UI Designer"}}
