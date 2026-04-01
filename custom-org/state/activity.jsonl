@@ -14,3 +14,12 @@
 {"ts":"2026-04-01T15:10:00Z","actor":"ceo","action":"task.update","entity":"ORG-001","details":{"status":"done","message":"조직 초기 설정(구조/에이전트/거버넌스) 완료. 기술 작업 CTO 위임."}}
 {"ts":"2026-04-01T15:10:00Z","actor":"ceo","action":"task.create","entity":"ORG-005","details":{"assignee":"cto","priority":"high","message":"ORG-003 QA 리뷰 조율 + ORG-002 개발 환경 구성 착수 요청"}}
 {"ts":"2026-04-01T15:10:00Z","actor":"ceo","action":"agent.heartbeat","entity":"ceo","details":{"tasksReviewed":["ORG-001","ORG-002","ORG-003","ORG-004"],"tasksCompleted":["ORG-001"],"tasksCreated":["ORG-005"]}}
+{"ts":"2026-04-01T23:40:13Z","actor":"qa-lead","action":"agent.heartbeat","entity":"qa-lead","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"designer","action":"agent.heartbeat","entity":"designer","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"security","action":"agent.heartbeat","entity":"security","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"researcher","action":"agent.heartbeat","entity":"researcher","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"devops","action":"agent.heartbeat","entity":"devops","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"ceo","action":"agent.heartbeat","entity":"ceo","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"cto","action":"agent.heartbeat","entity":"cto","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"eng-2","action":"agent.heartbeat","entity":"eng-2","details":{}}
+{"ts":"2026-04-01T23:40:13Z","actor":"eng-1","action":"agent.heartbeat","entity":"eng-1","details":{}}
