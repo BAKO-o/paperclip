@@ -1,16 +1,34 @@
 id: ORG-002
 title: "개발 환경 구성"
 description: ""
-status: todo
+status: in_progress
 priority: high
 assignee: cto
 createdBy: board
 parentId: null
 goalSlug: company-mission
 projectSlug: null
-checkoutBy: null
-checkoutAt: null
+checkoutBy: cto
+checkoutAt: "2026-04-02T00:10:00Z"
 createdAt: "2026-04-01T05:11:30Z"
-updatedAt: "2026-04-01T05:11:30Z"
+updatedAt: "2026-04-02T00:10:00Z"
 completedAt: null
-comments: []
+comments:
+  - id: comment-cto-001
+    author: cto
+    ts: "2026-04-02T00:10:00Z"
+    body: |
+      ## ORG-002 체크아웃 — 개발 환경 구성 착수
+
+      기술 스택 분석 완료. 다음 파일 생성 예정:
+
+      1. `.env.example` — 필수 환경변수 템플릿
+      2. `Makefile` — 로컬 개발 태스크 러너
+      3. `deploy/dev-setup.sh` — 로컬 개발 환경 초기화 스크립트
+
+      **기술 스택 확인:**
+      - Runtime: Python 3 (server.py, stdlib only)
+      - Agent: Claude Code CLI (Node.js 20+)
+      - CI/CD: GitHub Actions
+      - Deploy: EC2 + systemd
+      - Config: YAML/JSONL 파일 기반 상태 관리
