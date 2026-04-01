@@ -1,0 +1,16 @@
+id: ORG-004
+title: "API로 만든 태스크"
+description: ""
+status: todo
+priority: high
+assignee: eng-2
+createdBy: board
+parentId: null
+goalSlug: null
+projectSlug: null
+checkoutBy: null
+checkoutAt: null
+createdAt: "2026-04-01T07:25:16Z"
+updatedAt: "2026-04-01T07:25:16Z"
+completedAt: null
+comments:
