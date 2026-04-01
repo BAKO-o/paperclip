@@ -14,6 +14,7 @@ case "${1:-help}" in
   board)     shift; "$ORG_DIR/bin/org-board" "$@" ;;
   status)    shift; "$ORG_DIR/bin/org-status" "$@" ;;
   heartbeat) shift; "$ORG_DIR/bin/org-heartbeat-run" "$@" ;;
+  chart)     shift; "$ORG_DIR/bin/org-chart" "$@" ;;
   help|--help|-h)
     cat <<'USAGE'
 Custom AI Organization — Control Plane CLI

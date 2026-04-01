@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""org-chart — Rich ASCII organization chart with live status"""
+import os, sys, glob
+
+ORG_DIR = os.environ.get("ORG_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+STATE_DIR = os.path.join(ORG_DIR, "state")
+
+# ── ANSI ──
+B, R, DIM = "\033[1m", "\033[0m", "\033[2m"
+GREEN, YELLOW, RED, CYAN, BLUE, MAGENTA = "\033[32m", "\033[33m", "\033[31m", "\033[36m", "\033[34m", "\033[35m"
+BG_G, BG_Y, BG_R, BG_C = "\033[42m", "\033[43m", "\033[41m", "\033[46m"
+
+def parse_front(path):
+    d = {}; in_fm = False
+    try:
+        for line in open(path):
+            s = line.strip()
+            if s == "---":
+                if in_fm: break
+                in_fm = True; continue
+            if in_fm and ":" in s and not s.startswith("-"):
+                k, v = s.split(":", 1)
+                v = v.strip().strip('"')
+                if v == "null": v = None
+                d[k.strip()] = v
+    except: pass
+    return d
+
+def parse_yaml(path):
+    d = {}
+    try:
+        for line in open(path):
+            s = line.strip()
+            if ":" in s and not s.startswith("-") and not s.startswith("#"):
+                k, v = s.split(":", 1)
+                v = v.strip().strip('"')
+                if v == "null": v = None
+                d[k.strip()] = v
+    except: pass
+    return d
+
+# ── Load agents ──
+agents = {}
+for d in sorted(glob.glob(os.path.join(ORG_DIR, "agents", "*"))):
+    if not os.path.isdir(d): continue
+    slug = os.path.basename(d)
+    meta = parse_front(os.path.join(d, "AGENTS.md"))
+    state = parse_yaml(os.path.join(STATE_DIR, "agents", f"{slug}.yaml"))
+    agents[slug] = {
+        "name": meta.get("name", slug),
+        "title": meta.get("title", ""),
+        "reportsTo": meta.get("reportsTo"),
+        "status": state.get("status", "unknown"),
+        "hb": state.get("lastHeartbeatAt"),
+    }
+
+# ── Load tasks ──
+tasks = []
+for tf in sorted(glob.glob(os.path.join(STATE_DIR, "tasks", "*.yaml"))):
+    tasks.append(parse_yaml(tf))
+
+def agent_tasks(slug):
+    ip, todo, review, blocked, details = 0, 0, 0, 0, []
+    for t in tasks:
+        if t.get("assignee") != slug: continue
+        s = t.get("status", "")
+        tid = t.get("id", "?")
+        title = (t.get("title", "") or "")[:28]
+        pri = t.get("priority", "")
+        if s == "in_progress":
+            ip += 1; details.append(f"▶ {tid} [{pri}] {title}")
+        elif s == "todo": todo += 1
+        elif s == "in_review":
+            review += 1; details.append(f"⏳ {tid} [review] {title}")
+        elif s == "blocked":
+            blocked += 1; details.append(f"🚫 {tid} [blocked] {title}")
+    return ip, todo, review, blocked, details
+
+def status_badge(s):
+    m = {"active": f"{BG_G}{B} ● Active {R}", "paused": f"{BG_Y}{B} ○ Paused {R}",
+         "idle": f"{DIM} ◦ Idle   {R}", "error": f"{BG_R}{B} ✗ Error  {R}"}
+    return m.get(s, f"{DIM} ? Unknown{R}")
+
+# ── Render box ──
+def render_box(slug, indent="", connector="└"):
+    a = agents[slug]
+    ip, todo, review, blocked, details = agent_tasks(slug)
+    w = 42
+    line = "─" * w
+
+    working = f" {BG_C}{B} WORKING {R}" if ip > 0 else ""
+    hb_str = f"  {DIM}🕐 Last HB: {a['hb'][11:16]} UTC{R}" if a.get("hb") else ""
+
+    lines = []
+    lines.append(f"{indent}{connector}╭{line}╮")
+    lines.append(f"{indent} │  {B}{a['name']}{R}")
+    lines.append(f"{indent} │  {DIM}{a['title']}{R}")
+    lines.append(f"{indent} │  {status_badge(a['status'])}{working}")
+
+    if ip > 0 or todo > 0 or review > 0 or blocked > 0:
+        parts = []
+        if ip: parts.append(f"{CYAN}▶ {ip} working{R}")
+        if todo: parts.append(f"📋 {todo} queued")
+        if review: parts.append(f"{YELLOW}⏳ {review} review{R}")
+        if blocked: parts.append(f"{RED}🚫 {blocked} blocked{R}")
+        lines.append(f"{indent} │  {'  '.join(parts)}")
+
+    for d in details:
+        lines.append(f"{indent} │  {YELLOW}{d}{R}")
+
+    if hb_str:
+        lines.append(f"{indent} │{hb_str}")
+
+    lines.append(f"{indent} ╰{line}╯")
+    return "\n".join(lines)
+
+def get_children(parent):
+    return sorted([s for s, a in agents.items() if a["reportsTo"] == parent])
+
+def render_tree(slug, indent=""):
+    children = get_children(slug)
+    result = []
+    for i, child in enumerate(children):
+        is_last = (i == len(children) - 1)
+        conn = "└" if is_last else "├"
+        next_indent = indent + ("     " if is_last else " │   ")
+
+        result.append(f"{indent} │")
+        result.append(render_box(child, indent, conn))
+        result.append(render_tree(child, next_indent))
+    return "\n".join(result)
+
+# ── Task summary ──
+total = len(tasks)
+counts = {}
+for t in tasks:
+    s = t.get("status", "other")
+    counts[s] = counts.get(s, 0) + 1
+
+summary = (f"  {B}Total:{R} {total}  "
+           f"{CYAN}▶ {counts.get('in_progress',0)}{R}  "
+           f"📋 {counts.get('todo',0)}  "
+           f"{YELLOW}⏳ {counts.get('in_review',0)}{R}  "
+           f"{GREEN}✓ {counts.get('done',0)}{R}  "
+           f"{RED}🚫 {counts.get('blocked',0)}{R}  "
+           f"{DIM}📦 {counts.get('backlog',0)}{R}")
+
+# ── Print ──
+print()
+print(f"{B}╔══════════════════════════════════════════════════════════════╗{R}")
+print(f"{B}║{R}           {B}CUSTOM AI ORGANIZATION{R} — Live Status             {B}║{R}")
+print(f"{B}╠══════════════════════════════════════════════════════════════╣{R}")
+print(f"{B}║{R}{summary} {B}║{R}")
+print(f"{B}╚══════════════════════════════════════════════════════════════╝{R}")
+print()
+print(f"  ╭──────────────────────────────────────────╮")
+print(f"  │  {B}👤 Board{R} (Human Operator)               │")
+print(f"  │  {DIM}Strategic oversight, approvals{R}          │")
+print(f"  ╰──────────────────────────────────────────╯")
+
+roots = sorted([s for s, a in agents.items() if not a["reportsTo"]])
+for root in roots:
+    print("  │")
+    print(render_box(root, "  ", "└"))
+    print(render_tree(root, "       "))
+
+print()
+print(f"  {DIM}bin/org chart | bin/org heartbeat <slug> | bin/org task list{R}")
+print()
