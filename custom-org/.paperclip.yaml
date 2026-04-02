@@ -1,0 +1,41 @@
+schema: paperclip/v1
+
+# Paperclip vendor extension — adapter 및 env 설정
+# 이 파일은 Paperclip에서 import할 때 사용됩니다.
+
+agents:
+  ceo:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-opus-4-6
+  cto:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-4-6
+  eng-1:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-4-6
+    inputs:
+      env:
+        GH_TOKEN:
+          kind: secret
+          requirement: optional
+  eng-2:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-4-6
+    inputs:
+      env:
+        GH_TOKEN:
+          kind: secret
+          requirement: optional
+  qa-lead:
+    adapter:
+      type: claude_local
+      config:
+        model: claude-sonnet-4-6

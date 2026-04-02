@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+# org-heartbeat-run — Run heartbeat for one or all agents via Claude Code CLI
+#
+# Usage:
+#   bin/org-heartbeat-run eng-1          # 특정 에이전트 하트비트
+#   bin/org-heartbeat-run --all          # 전체 활성 에이전트 순차 실행
+#   bin/org-heartbeat-run --all --parallel  # 전체 활성 에이전트 병렬 실행
+#
+# Environment:
+#   ANTHROPIC_API_KEY   — Required. Claude API key
+#   ORG_COMPANY_DIR     — Organization root (default: script parent dir)
+#   HEARTBEAT_MODEL     — Model to use (default: claude-sonnet-4-6)
+#   HEARTBEAT_LOG_DIR   — Log directory (default: state/heartbeat-logs)
+
+set -euo pipefail
+
+ORG_DIR="${ORG_COMPANY_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+LOG_DIR="${HEARTBEAT_LOG_DIR:-$STATE_DIR/heartbeat-logs}"
+MODEL="${HEARTBEAT_MODEL:-claude-sonnet-4-6}"
+PARALLEL=false
+TARGETS=()
+
+mkdir -p "$LOG_DIR"
+
+# Parse args
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --all)      shift ;;
+    --parallel) PARALLEL=true; shift ;;
+    --model)    MODEL="$2"; shift 2 ;;
+    -*)         echo "Unknown option: $1"; exit 1 ;;
+    *)          TARGETS+=("$1"); shift ;;
+  esac
+done
+
+# If no targets, run all active agents
+if [ ${#TARGETS[@]} -eq 0 ]; then
+  for state_file in "$STATE_DIR"/agents/*.yaml; do
+    [ -f "$state_file" ] || continue
+    slug=$(basename "$state_file" .yaml)
+    status=$(grep "^status:" "$state_file" | awk '{print $2}')
+    if [ "$status" = "active" ]; then
+      TARGETS+=("$slug")
+    fi
+  done
+fi
+
+if [ ${#TARGETS[@]} -eq 0 ]; then
+  echo "No active agents to run."
+  exit 0
+fi
+
+# Build heartbeat prompt for an agent
+build_prompt() {
+  local slug="$1"
+  local agents_file="$ORG_DIR/agents/$slug/AGENTS.md"
+  local state_file="$STATE_DIR/agents/$slug.yaml"
+
+  if [ ! -f "$agents_file" ]; then
+    echo "Agent not found: $slug" >&2
+    return 1
+  fi
+
+  # Read agent identity
+  local agent_name agent_title
+  agent_name=$(grep "^name:" "$agents_file" | sed 's/^name: *//')
+  agent_title=$(grep "^title:" "$agents_file" | sed 's/^title: *//')
+
+  # Read agent instructions (body after frontmatter)
+  local instructions
+  instructions=$(awk '/^---$/{n++; next} n>=2' "$agents_file")
+
+  # Read assigned tasks
+  local tasks_summary=""
+  for task_file in "$STATE_DIR"/tasks/*.yaml; do
+    [ -f "$task_file" ] || continue
+    local assignee
+    assignee=$(grep "^assignee:" "$task_file" | awk '{print $2}')
+    if [ "$assignee" = "$slug" ]; then
+      local tid tstatus tpriority ttitle
+      tid=$(grep "^id:" "$task_file" | awk '{print $2}')
+      tstatus=$(grep "^status:" "$task_file" | awk '{print $2}')
+      tpriority=$(grep "^priority:" "$task_file" | awk '{print $2}')
+      ttitle=$(grep "^title:" "$task_file" | sed 's/^title: *//' | tr -d '"')
+      tasks_summary="${tasks_summary}
+- $tid [$tstatus] [$tpriority] $ttitle"
+    fi
+  done
+
+  if [ -z "$tasks_summary" ]; then
+    tasks_summary="
+(할당된 태스크 없음)"
+  fi
+
+  cat <<PROMPT
+당신은 "${agent_name}" (${agent_title})입니다.
+조직 디렉토리: ${ORG_DIR}
+
+## 당신의 할당된 태스크:
+${tasks_summary}
+
+## 지시사항:
+${instructions}
+
+## 하트비트 실행:
+1. 위 태스크 중 우선순위가 높은 것부터 처리하세요.
+2. 태스크 상태를 업데이트하세요: state/tasks/<ID>.yaml 파일의 status 필드 수정
+3. 작업 결과를 태스크의 comments에 추가하세요.
+4. 활동 로그를 state/activity.jsonl에 추가하세요.
+5. state/agents/${slug}.yaml의 lastHeartbeatAt을 현재 시간으로 업데이트하세요.
+6. 태스크가 없으면 상위자에게 보고할 사항이 있는지 확인하세요.
+
+지금 하트비트를 실행하세요.
+PROMPT
+}
+
+# Run heartbeat for a single agent
+run_heartbeat() {
+  local slug="$1"
+  local log_file="$LOG_DIR/${slug}_$(date -u +%Y%m%d_%H%M%S).log"
+  local prompt
+
+  prompt=$(build_prompt "$slug") || return 1
+
+  echo "[$(date -u +%H:%M:%S)] Starting heartbeat: $slug"
+
+  # Update lastHeartbeatAt
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local state_file="$STATE_DIR/agents/$slug.yaml"
+  if [ -f "$state_file" ]; then
+    sed -i "s/^lastHeartbeatAt: .*/lastHeartbeatAt: \"$now\"/" "$state_file"
+  fi
+
+  # Log activity
+  echo "{\"ts\":\"$now\",\"actor\":\"$slug\",\"action\":\"agent.heartbeat\",\"entity\":\"$slug\",\"details\":{}}" >> "$STATE_DIR/activity.jsonl"
+
+  # Run Claude Code in headless mode
+  if command -v claude &>/dev/null; then
+    echo "$prompt" | claude -p \
+      --model "$MODEL" \
+      --allowedTools "Read,Write,Edit,Bash,Grep,Glob" \
+      2>&1 | tee "$log_file"
+    local exit_code=$?
+    echo "[$(date -u +%H:%M:%S)] Heartbeat complete: $slug (exit: $exit_code)"
+    return $exit_code
+  else
+    echo "ERROR: 'claude' CLI not found. Install Claude Code first."
+    echo "  npm install -g @anthropic-ai/claude-code"
+    echo ""
+    echo "Prompt that would be sent:"
+    echo "---"
+    echo "$prompt"
+    echo "---"
+    echo "$prompt" > "$log_file"
+    return 1
+  fi
+}
+
+# Execute
+echo "╔═══════════════════════════════════════════════╗"
+echo "║  Heartbeat Run — $(date -u +%Y-%m-%d\ %H:%M:%S) UTC  ║"
+echo "╠═══════════════════════════════════════════════╣"
+echo "║  Targets: ${TARGETS[*]}"
+echo "║  Model: $MODEL"
+echo "║  Parallel: $PARALLEL"
+echo "╚═══════════════════════════════════════════════╝"
+echo ""
+
+if [ "$PARALLEL" = true ]; then
+  pids=()
+  for slug in "${TARGETS[@]}"; do
+    run_heartbeat "$slug" &
+    pids+=($!)
+  done
+  # Wait for all
+  for pid in "${pids[@]}"; do
+    wait "$pid" || true
+  done
+else
+  for slug in "${TARGETS[@]}"; do
+    run_heartbeat "$slug"
+    echo ""
+  done
+fi
+
+echo ""
+echo "All heartbeats complete."

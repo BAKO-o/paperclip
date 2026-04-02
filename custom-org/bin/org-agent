@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# org-agent — Agent management subcommand
+set -euo pipefail
+
+ORG_DIR="${ORG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+
+log_activity() {
+  local actor="$1" action="$2" entity="$3" details="$4"
+  local ts
+  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  echo "{\"ts\":\"$ts\",\"actor\":\"$actor\",\"action\":\"$action\",\"entity\":\"$entity\",\"details\":$details}" >> "$STATE_DIR/activity.jsonl"
+}
+
+cmd_list() {
+  printf "%-12s %-10s %-30s %-20s %s\n" "SLUG" "STATUS" "TITLE" "REPORTS TO" "LAST HEARTBEAT"
+  printf "%-12s %-10s %-30s %-20s %s\n" "----" "------" "-----" "----------" "--------------"
+
+  for agent_dir in "$ORG_DIR"/agents/*/; do
+    [ -d "$agent_dir" ] || continue
+    local slug
+    slug=$(basename "$agent_dir")
+
+    local agents_file="$agent_dir/AGENTS.md"
+    local state_file="$STATE_DIR/agents/$slug.yaml"
+
+    # Read from AGENTS.md frontmatter
+    local title reports_to
+    title=$(grep "^title:" "$agents_file" 2>/dev/null | sed 's/^title: *//' || echo "N/A")
+    reports_to=$(grep "^reportsTo:" "$agents_file" 2>/dev/null | awk '{print $2}' || echo "null")
+
+    # Read runtime state
+    local status last_hb
+    if [ -f "$state_file" ]; then
+      status=$(grep "^status:" "$state_file" | awk '{print $2}')
+      last_hb=$(grep "^lastHeartbeatAt:" "$state_file" | awk '{print $2}' | tr -d '"')
+    else
+      status="unknown"
+      last_hb="never"
+    fi
+
+    printf "%-12s %-10s %-30s %-20s %s\n" "$slug" "$status" "$title" "$reports_to" "$last_hb"
+  done
+}
+
+cmd_show() {
+  local slug="$1"
+  local agents_file="$ORG_DIR/agents/$slug/AGENTS.md"
+  local state_file="$STATE_DIR/agents/$slug.yaml"
+
+  if [ ! -f "$agents_file" ]; then
+    echo "Agent not found: $slug"
+    exit 1
+  fi
+
+  echo "=== Agent: $slug ==="
+  echo ""
+  echo "--- Definition (AGENTS.md) ---"
+  head -30 "$agents_file"
+  echo ""
+
+  if [ -f "$state_file" ]; then
+    echo "--- Runtime State ---"
+    cat "$state_file"
+    echo ""
+  fi
+
+  # Show assigned tasks
+  echo "--- Assigned Tasks ---"
+  local count=0
+  if [ -d "$STATE_DIR/tasks" ]; then
+    for task_file in "$STATE_DIR"/tasks/*.yaml; do
+      [ -f "$task_file" ] || continue
+      local assignee
+      assignee=$(grep "^assignee:" "$task_file" | awk '{print $2}')
+      if [ "$assignee" = "$slug" ]; then
+        local tid tstatus title
+        tid=$(grep "^id:" "$task_file" | awk '{print $2}')
+        tstatus=$(grep "^status:" "$task_file" | awk '{print $2}')
+        title=$(grep "^title:" "$task_file" | sed 's/^title: *//' | tr -d '"')
+        printf "  %-10s %-12s %s\n" "$tid" "$tstatus" "$title"
+        count=$((count + 1))
+      fi
+    done
+  fi
+  [ "$count" -eq 0 ] && echo "  (no tasks assigned)"
+}
+
+cmd_pause() {
+  local slug="$1"
+  local reason="${2:-manual}"
+  local state_file="$STATE_DIR/agents/$slug.yaml"
+
+  if [ ! -f "$state_file" ]; then
+    echo "Agent state not found: $slug (run 'org init' first)"
+    exit 1
+  fi
+
+  sed -i "s/^status: .*/status: paused/" "$state_file"
+  log_activity "board" "agent.pause" "$slug" "{\"reason\":\"$reason\"}"
+  echo "Agent paused: $slug (reason: $reason)"
+}
+
+cmd_resume() {
+  local slug="$1"
+  local state_file="$STATE_DIR/agents/$slug.yaml"
+
+  if [ ! -f "$state_file" ]; then
+    echo "Agent state not found: $slug (run 'org init' first)"
+    exit 1
+  fi
+
+  sed -i "s/^status: .*/status: active/" "$state_file"
+  log_activity "board" "agent.resume" "$slug" "{}"
+  echo "Agent resumed: $slug"
+}
+
+case "${1:-help}" in
+  list|ls) shift; cmd_list "$@" ;;
+  show)    shift; cmd_show "$@" ;;
+  pause)   shift; cmd_pause "$@" ;;
+  resume)  shift; cmd_resume "$@" ;;
+  help|--help|-h)
+    cat <<'USAGE'
+org agent — Agent Management
+
+Commands:
+  list              List all agents with status
+  show <slug>       Show agent details
+  pause <slug>      Pause an agent
+  resume <slug>     Resume an agent
+USAGE
+    ;;
+  *) echo "Unknown agent subcommand: $1"; exit 1 ;;
+esac

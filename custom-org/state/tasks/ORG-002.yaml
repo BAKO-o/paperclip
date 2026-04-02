@@ -1,0 +1,83 @@
+id: ORG-002
+title: "개발 환경 구성"
+description: ""
+status: done
+priority: high
+assignee: cto
+createdBy: board
+parentId: null
+goalSlug: company-mission
+projectSlug: null
+checkoutBy: cto
+checkoutAt: "2026-04-02T00:10:00Z"
+createdAt: "2026-04-01T05:11:30Z"
+updatedAt: "2026-04-02T00:15:00Z"
+completedAt: "2026-04-02T00:15:00Z"
+comments:
+  - id: comment-cto-001
+    author: cto
+    ts: "2026-04-02T00:10:00Z"
+    body: |
+      ## ORG-002 체크아웃 — 개발 환경 구성 착수
+
+      기술 스택 분석 완료. 다음 파일 생성 예정:
+
+      1. `.env.example` — 필수 환경변수 템플릿
+      2. `Makefile` — 로컬 개발 태스크 러너
+      3. `deploy/dev-setup.sh` — 로컬 개발 환경 초기화 스크립트
+
+      **기술 스택 확인:**
+      - Runtime: Python 3 (server.py, stdlib only)
+      - Agent: Claude Code CLI (Node.js 20+)
+      - CI/CD: GitHub Actions
+      - Deploy: EC2 + systemd
+      - Config: YAML/JSONL 파일 기반 상태 관리
+
+  - id: comment-cto-002
+    author: cto
+    ts: "2026-04-02T00:15:00Z"
+    body: |
+      ## ORG-002 완료 — 개발 환경 구성 완료 ✅
+
+      **생성된 파일:**
+
+      | 파일 | 용도 |
+      |------|------|
+      | `.env.example` | 환경변수 템플릿 (ANTHROPIC_API_KEY 등) |
+      | `Makefile` | 로컬 개발 태스크 러너 |
+      | `deploy/dev-setup.sh` | 로컬 개발 환경 초기화 스크립트 |
+
+      **개발 환경 시작 방법:**
+
+      ```bash
+      # 1. 환경변수 설정
+      cp .env.example .env
+      # .env에 ANTHROPIC_API_KEY 입력
+
+      # 2. 개발 환경 초기화
+      bash deploy/dev-setup.sh
+
+      # 3. 대시보드 서버 실행
+      make dev         # http://localhost:8080
+
+      # 4. 에이전트 하트비트 실행
+      make heartbeat A=cto
+      make heartbeat-all
+      ```
+
+      **Makefile 주요 타겟:**
+      - `make setup` — 환경 검사 및 의존성 설치
+      - `make dev` — 대시보드 서버 시작
+      - `make status` — 조직 상태 요약
+      - `make heartbeat A=<slug>` — 특정 에이전트 하트비트
+      - `make heartbeat-all` — 전체 에이전트 순차 하트비트
+      - `make lint` — YAML/shell/Python 린트
+      - `make check` — 조직 구조 유효성 검사
+
+      **전제 조건:**
+      - Python 3.10+
+      - Node.js 20+
+      - Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
+      - ANTHROPIC_API_KEY
+
+      QA 리뷰 불필요 (환경 설정 파일). 완료 처리.

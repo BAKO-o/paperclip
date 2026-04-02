@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom AI Organization</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #242835;
+  --border: #2e3345;
+  --text: #e1e4ed;
+  --text2: #8b90a0;
+  --accent: #6366f1;
+  --accent2: #818cf8;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --red: #ef4444;
+  --orange: #f97316;
+  --cyan: #06b6d4;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); display: inline-block; margin-right: 8px;
+}
+
+.main { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 57px); }
+
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  overflow-y: auto;
+}
+
+.sidebar .section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: var(--text2); padding: 8px 16px; letter-spacing: 0.5px;
+}
+
+.sidebar .nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; cursor: pointer; font-size: 14px;
+  transition: background 0.15s;
+}
+.sidebar .nav-item:hover { background: var(--surface2); }
+.sidebar .nav-item.active { background: var(--accent); color: white; }
+.sidebar .badge {
+  margin-left: auto; background: var(--surface2); color: var(--text2);
+  padding: 1px 8px; border-radius: 10px; font-size: 12px;
+}
+.sidebar .nav-item.active .badge { background: rgba(255,255,255,0.2); color: white; }
+
+.content { padding: 24px; overflow-y: auto; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+/* ── Stat row ── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px;
+}
+.stat-card .label { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.stat-card .value { font-size: 28px; font-weight: 700; }
+.stat-card .sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ── Org Chart ── */
+.org-tree { padding: 8px 0; }
+.org-node {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 6px; margin: 2px 0;
+  transition: background 0.15s;
+}
+.org-node:hover { background: var(--surface2); }
+.org-node .avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; color: white;
+}
+.org-node .info { flex: 1; }
+.org-node .name { font-size: 14px; font-weight: 500; }
+.org-node .title { font-size: 12px; color: var(--text2); }
+.org-children { margin-left: 24px; border-left: 2px solid var(--border); padding-left: 12px; }
+
+.status-badge {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+}
+.status-active { background: rgba(34,197,94,0.15); color: var(--green); }
+.status-paused { background: rgba(234,179,8,0.15); color: var(--yellow); }
+.status-idle { background: rgba(139,144,160,0.15); color: var(--text2); }
+.status-error { background: rgba(239,68,68,0.15); color: var(--red); }
+
+/* ── Task Board ── */
+.kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.kanban-col { background: var(--surface2); border-radius: 8px; padding: 12px; min-height: 120px; }
+.kanban-col .col-header {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  color: var(--text2); margin-bottom: 12px; display: flex;
+  align-items: center; gap: 6px;
+}
+.kanban-col .col-header .count {
+  background: var(--border); padding: 1px 6px; border-radius: 8px; font-size: 11px;
+}
+
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+  margin-bottom: 8px; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.task-card:hover { border-color: var(--accent); }
+.task-card .task-id { font-size: 11px; color: var(--text2); }
+.task-card .task-title { font-size: 13px; font-weight: 500; margin: 4px 0; }
+.task-card .task-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; align-items: center; }
+
+.priority-critical { border-left: 3px solid var(--red); }
+.priority-high { border-left: 3px solid var(--orange); }
+.priority-medium { border-left: 3px solid var(--yellow); }
+.priority-low { border-left: 3px solid var(--text2); }
+
+/* ── Budget ── */
+.budget-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.budget-row:last-child { border: none; }
+.budget-row .agent-name { width: 100px; font-size: 13px; font-weight: 500; }
+.budget-row .bar-wrap {
+  flex: 1; height: 8px; background: var(--surface2);
+  border-radius: 4px; overflow: hidden;
+}
+.budget-row .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.budget-row .pct { width: 60px; text-align: right; font-size: 13px; font-weight: 500; }
+.budget-row .amounts { width: 140px; text-align: right; font-size: 12px; color: var(--text2); }
+
+/* ── Activity ── */
+.activity-item {
+  display: flex; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.activity-item:last-child { border: none; }
+.activity-item .time { color: var(--text2); white-space: nowrap; min-width: 60px; }
+.activity-item .actor { color: var(--accent2); font-weight: 500; min-width: 60px; }
+.activity-item .action-text { color: var(--text); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); display: flex;
+  align-items: center; justify-content: center;
+  z-index: 100; display: none;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw;
+}
+.modal h3 { font-size: 16px; margin-bottom: 16px; }
+
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface2); color: var(--text);
+  font-size: 14px; outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--accent);
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+
+.btn {
+  padding: 8px 16px; border-radius: 6px; border: none;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-danger { background: var(--red); color: white; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+/* ── Agent actions ── */
+.agent-actions { display: flex; gap: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:10px">
+    <span class="status-dot"></span>
+    <h1>Custom AI Organization</h1>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-primary" onclick="showModal('task')">+ Task</button>
+    <button class="btn btn-secondary" onclick="showModal('agent')">+ Agent</button>
+  </div>
+</div>
+
+<div class="main">
+  <nav class="sidebar">
+    <div class="section-title">Overview</div>
+    <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+      <span>Dashboard</span>
+    </div>
+
+    <div class="section-title" style="margin-top:12px">Management</div>
+    <div class="nav-item" data-view="tasks" onclick="switchView('tasks')">
+      <span>Tasks</span>
+      <span class="badge" id="task-count">0</span>
+    </div>
+    <div class="nav-item" data-view="agents" onclick="switchView('agents')">
+      <span>Agents</span>
+      <span class="badge" id="agent-count">0</span>
+    </div>
+    <div class="nav-item" data-view="budget" onclick="switchView('budget')">
+      <span>Budget</span>
+    </div>
+    <div class="nav-item" data-view="activity" onclick="switchView('activity')">
+      <span>Activity</span>
+    </div>
+
+    <div class="section-title" style="margin-top:12px">Agents</div>
+    <div id="sidebar-agents"></div>
+  </nav>
+
+  <div class="content" id="content"></div>
+</div>
+
+<!-- Create Task Modal -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <h3>Create Task</h3>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="new-task-title" placeholder="Task title...">
+    </div>
+    <div class="form-group">
+      <label>Assignee</label>
+      <select id="new-task-assignee"></select>
+    </div>
+    <div class="form-group">
+      <label>Priority</label>
+      <select id="new-task-priority">
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="new-task-desc" placeholder="Task description..."></textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="hideModal('task')">Cancel</button>
+      <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Agent Modal -->
+<div class="modal-overlay" id="modal-agent">
+  <div class="modal">
+    <h3>Add Agent</h3>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="new-agent-name" placeholder="Agent name...">
+    </div>
+    <div class="form-group">
+      <label>Slug (URL-safe ID)</label>
+      <input type="text" id="new-agent-slug" placeholder="agent-slug">
+      <div id="slug-warning" style="color:var(--red);font-size:12px;margin-top:4px;display:none"></div>
+    </div>
+    <div class="form-group">
+      <label>Title</label>
+      <input type="text" id="new-agent-title" placeholder="Job title...">
+    </div>
+    <div class="form-group">
+      <label>Reports To</label>
+      <select id="new-agent-reports"></select>
+    </div>
+    <div class="form-group">
+      <label>Monthly Budget (cents)</label>
+      <input type="number" id="new-agent-budget" value="20000">
+    </div>
+    <div class="form-group">
+      <label>Instructions</label>
+      <textarea id="new-agent-instructions" placeholder="Agent instructions..."></textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="hideModal('agent')">Cancel</button>
+      <button class="btn btn-primary" onclick="createAgent()">Add Agent</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div class="modal-overlay" id="modal-task-detail">
+  <div class="modal" style="width:560px">
+    <div id="task-detail-content"></div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="hideModal('task-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let data = { agents: [], tasks: [], budgets: {}, approvals: [], activity: [] };
+
+const COLORS = ['#6366f1','#8b5cf6','#ec4899','#ef4444','#f97316','#22c55e','#14b8a6','#06b6d4','#3b82f6','#eab308'];
+const STATUS_COLS = ['backlog','todo','in_progress','in_review','done','blocked'];
+const STATUS_LABELS = {backlog:'Backlog',todo:'To Do',in_progress:'In Progress',in_review:'In Review',done:'Done',blocked:'Blocked'};
+
+function colorFor(slug) { return COLORS[Math.abs(hashCode(slug)) % COLORS.length]; }
+function hashCode(s) { let h=0; for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return h; }
+
+async function fetchData() {
+  const r = await fetch(API+'/api/dashboard');
+  data = await r.json();
+  document.getElementById('task-count').textContent = data.tasks.filter(t=>t.status!=='done'&&t.status!=='cancelled').length;
+  document.getElementById('agent-count').textContent = data.agents.length;
+  renderSidebarAgents();
+  renderCurrentView();
+  populateSelects();
+}
+
+function renderSidebarAgents() {
+  const el = document.getElementById('sidebar-agents');
+  el.innerHTML = data.agents.map(a => `
+    <div class="nav-item" style="padding:6px 16px" title="${a.title}">
+      <span style="width:8px;height:8px;border-radius:50%;background:${
+        a.status==='active'?'var(--green)':a.status==='paused'?'var(--yellow)':'var(--text2)'
+      }"></span>
+      <span style="font-size:13px">${a.name}</span>
+    </div>
+  `).join('');
+}
+
+function populateSelects() {
+  const opts = data.agents.map(a=>`<option value="${a.slug}">${a.name}</option>`).join('');
+  document.getElementById('new-task-assignee').innerHTML = '<option value="">Unassigned</option>'+opts;
+  document.getElementById('new-agent-reports').innerHTML = opts;
+}
+
+let currentView = 'dashboard';
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === view));
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  const el = document.getElementById('content');
+  switch(currentView) {
+    case 'dashboard': el.innerHTML = renderDashboard(); break;
+    case 'tasks': el.innerHTML = renderTaskBoard(); break;
+    case 'agents': el.innerHTML = renderAgents(); break;
+    case 'budget': el.innerHTML = renderBudget(); break;
+    case 'activity': el.innerHTML = renderActivity(); break;
+  }
+}
+
+// ── Dashboard ──
+function renderDashboard() {
+  const active = data.tasks.filter(t=>t.status!=='done'&&t.status!=='cancelled');
+  const inProg = data.tasks.filter(t=>t.status==='in_progress');
+  const done = data.tasks.filter(t=>t.status==='done');
+  const blocked = data.tasks.filter(t=>t.status==='blocked');
+
+  return `
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Active Tasks</div>
+        <div class="value">${active.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">In Progress</div>
+        <div class="value" style="color:var(--cyan)">${inProg.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Completed</div>
+        <div class="value" style="color:var(--green)">${done.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Blocked</div>
+        <div class="value" style="color:${blocked.length?'var(--red)':'var(--text2)'}">${blocked.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Agents</div>
+        <div class="value">${data.agents.length}</div>
+        <div class="sub">${data.agents.filter(a=>a.status==='active').length} active</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <h2>Organization</h2>
+        <div class="org-tree">${renderOrgTree()}</div>
+      </div>
+      <div class="card">
+        <h2>Recent Activity</h2>
+        ${data.activity.slice(0,8).map(renderActivityItem).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Task Board</h2>
+      <div class="kanban">${renderKanban()}</div>
+    </div>
+  `;
+}
+
+function renderOrgTree() {
+  const root = data.agents.filter(a => !a.reportsTo || a.reportsTo === 'null');
+  function renderNode(agent) {
+    const children = data.agents.filter(a => a.reportsTo === agent.slug);
+    return `
+      <div class="org-node">
+        <div class="avatar" style="background:${colorFor(agent.slug)}">${agent.name[0]}</div>
+        <div class="info">
+          <div class="name">${agent.name}</div>
+          <div class="title">${agent.title}</div>
+        </div>
+        <span class="status-badge status-${agent.status}">${agent.status}</span>
+      </div>
+      ${children.length ? `<div class="org-children">${children.map(renderNode).join('')}</div>` : ''}
+    `;
+  }
+  return `
+    <div class="org-node" style="opacity:0.7">
+      <div class="avatar" style="background:var(--text2)">B</div>
+      <div class="info"><div class="name">Board</div><div class="title">Human Operator</div></div>
+    </div>
+    <div class="org-children">${root.map(renderNode).join('')}</div>
+  `;
+}
+
+function renderKanban() {
+  return STATUS_COLS.map(status => {
+    const tasks = data.tasks.filter(t=>t.status===status);
+    return `
+      <div class="kanban-col">
+        <div class="col-header">${STATUS_LABELS[status]||status} <span class="count">${tasks.length}</span></div>
+        ${tasks.map(t => `
+          <div class="task-card priority-${t.priority||'medium'}" onclick="showTaskDetail('${t.id}')">
+            <div class="task-id">${t.id}</div>
+            <div class="task-title">${esc(t.title||'')}</div>
+            <div class="task-meta">
+              <span>${t.priority||'medium'}</span>
+              ${t.assignee&&t.assignee!=='null' ? `<span style="color:${colorFor(t.assignee)}">${t.assignee}</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Task Board View ──
+function renderTaskBoard() {
+  return `<div class="card"><h2>Task Board</h2><div class="kanban">${renderKanban()}</div></div>`;
+}
+
+// ── Agents View ──
+function renderAgents() {
+  return `
+    <div class="card">
+      <h2>Agents</h2>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);text-align:left">
+            <th style="padding:8px">Agent</th>
+            <th style="padding:8px">Title</th>
+            <th style="padding:8px">Reports To</th>
+            <th style="padding:8px">Status</th>
+            <th style="padding:8px">Skills</th>
+            <th style="padding:8px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.agents.map(a => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px;display:flex;align-items:center;gap:8px">
+                <div class="avatar" style="width:28px;height:28px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;background:${colorFor(a.slug)}">${a.name[0]}</div>
+                ${a.name}
+              </td>
+              <td style="padding:8px;color:var(--text2)">${a.title}</td>
+              <td style="padding:8px;color:var(--text2)">${a.reportsTo||'—'}</td>
+              <td style="padding:8px"><span class="status-badge status-${a.status}">${a.status}</span></td>
+              <td style="padding:8px;font-size:12px;color:var(--text2)">${(a.skills||[]).join(', ')}</td>
+              <td style="padding:8px">
+                <div class="agent-actions">
+                  ${a.status==='active'
+                    ? `<button class="btn btn-sm btn-secondary" onclick="toggleAgent('${a.slug}','pause')">Pause</button>`
+                    : `<button class="btn btn-sm btn-primary" onclick="toggleAgent('${a.slug}','resume')">Resume</button>`
+                  }
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Budget View ──
+function renderBudget() {
+  const agents = data.budgets?.agents || {};
+  return `
+    <div class="card">
+      <h2>Budget Summary</h2>
+      ${Object.entries(agents).map(([slug, b]) => {
+        const pct = b.monthlyCents ? Math.round(b.spentMonthlyCents/b.monthlyCents*100) : 0;
+        const barColor = pct>=100?'var(--red)':pct>=80?'var(--yellow)':'var(--accent)';
+        return `
+          <div class="budget-row">
+            <div class="agent-name">${slug}</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
+            <div class="pct" style="color:${barColor}">${pct}%</div>
+            <div class="amounts">$${(b.spentMonthlyCents/100).toFixed(2)} / $${(b.monthlyCents/100).toFixed(2)}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ── Activity View ──
+function renderActivity() {
+  return `<div class="card"><h2>Activity Log</h2>${data.activity.map(renderActivityItem).join('')}</div>`;
+}
+
+function renderActivityItem(a) {
+  const time = (a.ts||'').slice(11,16);
+  const details = a.details || {};
+  let desc = a.action;
+  if(details.newStatus) desc += ` (${details.previousStatus||'?'} → ${details.newStatus})`;
+  if(details.assignee) desc += ` → ${details.assignee}`;
+  return `
+    <div class="activity-item">
+      <span class="time">${time}</span>
+      <span class="actor">${a.actor}</span>
+      <span class="action-text">${a.action} <strong>${a.entity}</strong> ${details.newStatus?`<span style="color:var(--text2)">${details.previousStatus||''} → ${details.newStatus}</span>`:''}</span>
+    </div>
+  `;
+}
+
+// ── Task Detail ──
+function showTaskDetail(id) {
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  const el = document.getElementById('task-detail-content');
+  el.innerHTML = `
+    <h3>${t.id} — ${esc(t.title||'')}</h3>
+    <div style="margin:12px 0;font-size:13px;color:var(--text2)">${esc(t.description||'No description')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin:12px 0">
+      <div><strong>Status:</strong>
+        <select onchange="updateTask('${t.id}','status',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px">
+          ${['backlog','todo','in_progress','in_review','done','blocked','cancelled'].map(s=>
+            `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div><strong>Priority:</strong>
+        <select onchange="updateTask('${t.id}','priority',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px">
+          ${['critical','high','medium','low'].map(p=>
+            `<option value="${p}" ${t.priority===p?'selected':''}>${p}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div><strong>Assignee:</strong>
+        <select onchange="updateTask('${t.id}','assignee',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px">
+          <option value="">Unassigned</option>
+          ${data.agents.map(a=>`<option value="${a.slug}" ${t.assignee===a.slug?'selected':''}>${a.name}</option>`).join('')}
+        </select>
+      </div>
+      <div><strong>Created:</strong> ${(t.createdAt||'').slice(0,16).replace('T',' ')}</div>
+    </div>
+    <div style="margin-top:16px">
+      <strong style="font-size:13px">Comments</strong>
+      ${(t.comments||[]).map(c=>`
+        <div style="background:var(--surface2);padding:8px 12px;border-radius:6px;margin:6px 0;font-size:13px">
+          <span style="color:var(--accent2);font-weight:500">${c.author||'?'}</span>
+          <span style="color:var(--text2);margin-left:8px">${(c.at||'').slice(0,16).replace('T',' ')}</span>
+          <div style="margin-top:4px">${esc(c.body||'')}</div>
+        </div>
+      `).join('') || '<div style="color:var(--text2);font-size:13px;margin:8px 0">No comments</div>'}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="comment-input-${t.id}" placeholder="Add comment..." style="flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px">
+        <button class="btn btn-sm btn-primary" onclick="addComment('${t.id}')">Send</button>
+      </div>
+    </div>
+  `;
+  showModal('task-detail');
+}
+
+// ── API Actions ──
+async function createTask() {
+  await fetch(API+'/api/tasks', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      title: document.getElementById('new-task-title').value,
+      assignee: document.getElementById('new-task-assignee').value || null,
+      priority: document.getElementById('new-task-priority').value,
+      description: document.getElementById('new-task-desc').value,
+    })
+  });
+  hideModal('task');
+  document.getElementById('new-task-title').value = '';
+  document.getElementById('new-task-desc').value = '';
+  fetchData();
+}
+
+async function createAgent() {
+  const name = document.getElementById('new-agent-name').value.trim();
+  const slug = document.getElementById('new-agent-slug').value.trim();
+  const title = document.getElementById('new-agent-title').value.trim();
+  if (!name || !slug) { alert('Name과 Slug를 입력해주세요.'); return; }
+  // Check for duplicate slug client-side
+  if (data.agents.some(a => a.slug === slug)) {
+    alert(`"${slug}" 에이전트가 이미 존재합니다. 다른 Slug를 입력해주세요.`);
+    return;
+  }
+  try {
+    const res = await fetch(API+'/api/agents', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, slug, title,
+        reportsTo: document.getElementById('new-agent-reports').value,
+        budgetMonthlyCents: parseInt(document.getElementById('new-agent-budget').value) || 20000,
+        instructions: document.getElementById('new-agent-instructions').value,
+      })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      alert(errData && errData.error ? errData.error : '에이전트 생성에 실패했습니다.');
+      return;
+    }
+    hideModal('agent');
+    document.getElementById('new-agent-name').value = '';
+    document.getElementById('new-agent-slug').value = '';
+    document.getElementById('new-agent-title').value = '';
+    document.getElementById('new-agent-instructions').value = '';
+    document.getElementById('new-agent-budget').value = '20000';
+    fetchData();
+  } catch(e) { alert('서버 연결에 실패했습니다.'); }
+}
+
+async function updateTask(id, field, value) {
+  await fetch(API+`/api/tasks/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ [field]: value })
+  });
+  fetchData();
+}
+
+async function addComment(id) {
+  const input = document.getElementById(`comment-input-${id}`);
+  if (!input.value.trim()) return;
+  await fetch(API+`/api/tasks/${id}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ comment: input.value, actor: 'board' })
+  });
+  fetchData();
+  setTimeout(() => showTaskDetail(id), 200);
+}
+
+async function toggleAgent(slug, action) {
+  await fetch(API+`/api/agents/${slug}/${action}`, { method: 'POST' });
+  fetchData();
+}
+
+// ── Helpers ──
+function showModal(name) { document.getElementById(`modal-${name}`).classList.add('show'); }
+function hideModal(name) { document.getElementById(`modal-${name}`).classList.remove('show'); }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ── Auto-name slug ──
+document.getElementById('new-agent-name')?.addEventListener('input', e => {
+  const slugEl = document.getElementById('new-agent-slug');
+  slugEl.value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  checkSlugDuplicate(slugEl.value);
+});
+document.getElementById('new-agent-slug')?.addEventListener('input', e => {
+  checkSlugDuplicate(e.target.value.trim());
+});
+function checkSlugDuplicate(slug) {
+  const warn = document.getElementById('slug-warning');
+  if (slug && data.agents.some(a => a.slug === slug)) {
+    warn.textContent = `"${slug}" 에이전트가 이미 존재합니다`;
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// ── Init ──
+fetchData();
+setInterval(fetchData, 5000);
+</script>
+</body>
+</html>

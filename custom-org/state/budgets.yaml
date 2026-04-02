@@ -1,0 +1,31 @@
+# Budget Tracking — Monthly UTC Window
+company:
+  monthlyCents: 200000
+  spentMonthlyCents: 0
+  periodStart: "2026-04-01"
+
+agents:
+  ceo:
+    monthlyCents: 50000
+    spentMonthlyCents: 0
+  cto:
+    monthlyCents: 40000
+    spentMonthlyCents: 0
+  eng-1:
+    monthlyCents: 30000
+    spentMonthlyCents: 0
+  eng-2:
+    monthlyCents: 30000
+    spentMonthlyCents: 0
+  qa-lead:
+    monthlyCents: 25000
+    spentMonthlyCents: 0
+  test-agent:
+    monthlyCents: 15000
+    spentMonthlyCents: 0
+  designer:
+    monthlyCents: 15000
+    spentMonthlyCents: 0
+  devops:
+    monthlyCents: 20000
+    spentMonthlyCents: 0

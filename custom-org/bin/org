@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# org — Custom AI Organization Control Plane CLI
+# Usage: org <command> [args]
+
+set -euo pipefail
+
+ORG_DIR="${ORG_COMPANY_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+export ORG_DIR
+
+case "${1:-help}" in
+  init)      shift; "$ORG_DIR/bin/org-init" "$@" ;;
+  task)      shift; "$ORG_DIR/bin/org-task" "$@" ;;
+  agent)     shift; "$ORG_DIR/bin/org-agent" "$@" ;;
+  board)     shift; "$ORG_DIR/bin/org-board" "$@" ;;
+  status)    shift; "$ORG_DIR/bin/org-status" "$@" ;;
+  heartbeat) shift; "$ORG_DIR/bin/org-heartbeat-run" "$@" ;;
+  chart)     shift; "$ORG_DIR/bin/org-chart" "$@" ;;
+  help|--help|-h)
+    cat <<'USAGE'
+Custom AI Organization — Control Plane CLI
+
+Usage: org <command> [args]
+
+Commands:
+  init                          Initialize the organization (create state files)
+  task create [options]         Create a new task
+  task list [--status X] [--assignee Y]  List tasks
+  task show <ID>                Show task details
+  task update <ID> [options]    Update a task
+  task checkout <ID> --agent X  Checkout a task
+  agent list                    List all agents with status
+  agent show <slug>             Show agent details
+  agent pause <slug>            Pause an agent
+  agent resume <slug>           Resume an agent
+  board approvals               List pending approvals
+  board approve <ID>            Approve a request
+  board reject <ID> [--reason]  Reject a request
+  status                        Show organization dashboard
+
+Environment:
+  ORG_COMPANY_DIR    Organization root directory (default: script parent dir)
+  ORG_AGENT_SLUG     Agent identity for heartbeat operations
+USAGE
+    ;;
+  *)
+    echo "Unknown command: $1"
+    echo "Run 'org help' for usage."
+    exit 1
+    ;;
+esac

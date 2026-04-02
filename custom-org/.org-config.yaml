@@ -1,0 +1,42 @@
+# Custom AI Organization — Runtime Configuration
+# agentcompanies/v1 스펙 외 런타임 설정
+
+issuePrefix: ORG
+budgetPeriod: monthly
+
+governance:
+  requireBoardApprovalForHires: true
+  requireBoardApprovalForStrategy: true
+  budgetHardStop: true
+  budgetWarningThreshold: 0.8
+
+adapters:
+  default: claude_local
+  available:
+    - claude_local
+    - codex_local
+
+taskStatuses:
+  - backlog
+  - todo
+  - in_progress
+  - in_review
+  - done
+  - blocked
+  - cancelled
+
+priorities:
+  - critical
+  - high
+  - medium
+  - low
+
+agentRoles:
+  - ceo
+  - cto
+  - engineer
+  - qa
+  - designer
+  - devops
+  - researcher
+  - general

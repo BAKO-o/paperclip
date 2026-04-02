@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# org-board — Board governance subcommand
+set -euo pipefail
+
+ORG_DIR="${ORG_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="$ORG_DIR/state"
+APPROVALS_DIR="$STATE_DIR/approvals"
+
+log_activity() {
+  local actor="$1" action="$2" entity="$3" details="$4"
+  local ts
+  ts=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  echo "{\"ts\":\"$ts\",\"actor\":\"$actor\",\"action\":\"$action\",\"entity\":\"$entity\",\"details\":$details}" >> "$STATE_DIR/activity.jsonl"
+}
+
+cmd_approvals() {
+  if [ ! -d "$APPROVALS_DIR" ] || [ -z "$(ls -A "$APPROVALS_DIR" 2>/dev/null)" ]; then
+    echo "No pending approvals."
+    return
+  fi
+
+  local found=0
+  for approval_file in "$APPROVALS_DIR"/*.yaml; do
+    [ -f "$approval_file" ] || continue
+    local status
+    status=$(grep "^status:" "$approval_file" | awk '{print $2}')
+
+    if [ "$status" = "pending" ]; then
+      found=1
+      local id type proposed_by
+      id=$(grep "^id:" "$approval_file" | awk '{print $2}')
+      type=$(grep "^type:" "$approval_file" | awk '{print $2}')
+      proposed_by=$(grep "^proposedBy:" "$approval_file" | awk '{print $2}')
+
+      echo "=== $id ==="
+      echo "  Type: $type"
+      echo "  Proposed by: $proposed_by"
+      echo "  Status: PENDING"
+
+      # Show proposal details
+      if grep -q "^proposal:" "$approval_file"; then
+        echo "  Proposal:"
+        sed -n '/^proposal:/,/^[a-zA-Z]/{ /^proposal:/d; /^[a-zA-Z]/d; p; }' "$approval_file" | head -10
+      fi
+      echo ""
+    fi
+  done
+
+  [ "$found" -eq 0 ] && echo "No pending approvals."
+}
+
+cmd_approve() {
+  local approval_id="$1"
+  local approval_file="$APPROVALS_DIR/$approval_id.yaml"
+
+  if [ ! -f "$approval_file" ]; then
+    echo "Approval not found: $approval_id"
+    exit 1
+  fi
+
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  sed -i "s/^status: .*/status: approved/" "$approval_file"
+  sed -i "s/^resolvedAt: .*/resolvedAt: \"$now\"/" "$approval_file"
+  sed -i "s/^resolvedBy: .*/resolvedBy: board/" "$approval_file"
+
+  log_activity "board" "approval.resolve" "$approval_id" "{\"decision\":\"approved\"}"
+  echo "Approved: $approval_id"
+}
+
+cmd_reject() {
+  local approval_id="$1"; shift
+  local reason=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --reason) reason="$2"; shift 2 ;;
+      *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+  done
+
+  local approval_file="$APPROVALS_DIR/$approval_id.yaml"
+
+  if [ ! -f "$approval_file" ]; then
+    echo "Approval not found: $approval_id"
+    exit 1
+  fi
+
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  sed -i "s/^status: .*/status: rejected/" "$approval_file"
+  sed -i "s/^resolvedAt: .*/resolvedAt: \"$now\"/" "$approval_file"
+  sed -i "s/^resolvedBy: .*/resolvedBy: board/" "$approval_file"
+
+  if [ -n "$reason" ]; then
+    cat >> "$approval_file" <<EOF
+  - author: board
+    body: "$reason"
+    at: "$now"
+EOF
+  fi
+
+  log_activity "board" "approval.resolve" "$approval_id" "{\"decision\":\"rejected\",\"reason\":\"$reason\"}"
+  echo "Rejected: $approval_id"
+  [ -n "$reason" ] && echo "  Reason: $reason"
+}
+
+case "${1:-help}" in
+  approvals) shift; cmd_approvals "$@" ;;
+  approve)   shift; cmd_approve "$@" ;;
+  reject)    shift; cmd_reject "$@" ;;
+  help|--help|-h)
+    cat <<'USAGE'
+org board — Board Governance Actions
+
+Commands:
+  approvals               List pending approvals
+  approve <approval-id>   Approve a request
+  reject <approval-id>    Reject a request
+
+Reject options:
+  --reason <text>         Reason for rejection
+USAGE
+    ;;
+  *) echo "Unknown board subcommand: $1"; exit 1 ;;
+esac

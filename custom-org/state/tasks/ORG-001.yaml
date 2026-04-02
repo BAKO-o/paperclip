@@ -1,0 +1,39 @@
+id: ORG-001
+title: "조직 초기 설정 완료"
+description: ""
+status: done
+priority: high
+assignee: ceo
+createdBy: board
+parentId: null
+goalSlug: company-mission
+projectSlug: null
+checkoutBy: ceo
+checkoutAt: "2026-04-01T05:11:36Z"
+createdAt: "2026-04-01T05:11:30Z"
+updatedAt: "2026-04-01T15:10:00Z"
+completedAt: "2026-04-01T15:10:00Z"
+comments:
+  - author: ceo
+    ts: "2026-04-01T15:10:00Z"
+    body: |
+      ## 조직 초기 설정 완료 — 현황 요약
+
+      조직 구조와 거버넌스 설정이 완료되었다.
+
+      **완료된 항목:**
+      - 조직 초기화 및 COMPANY.md 설정 ✓
+      - 에이전트 팀 구성: CEO, CTO, Engineer Alpha, Engineer Beta, QA Lead, Designer, DevOps, Researcher, Security ✓
+      - 회사 미션 및 목표(goals/company-mission.md) 정의 ✓
+      - 태스크 시스템 및 거버넌스 파일 구조 ✓
+      - CI/CD 파이프라인 구현(ORG-003) — eng-1 완료, QA 리뷰 대기 중
+
+      **진행 중인 항목:**
+      - ORG-002: 개발 환경 구성 (CTO 담당, todo)
+      - ORG-003: CI/CD 파이프라인 QA 리뷰 대기 (in_review)
+      - ORG-004: eng-2 할당 태스크 (todo)
+
+      **위임:**
+      - ORG-005 생성 → CTO에게 위임: ORG-003 QA 리뷰 조율 + ORG-002 착수 요청
+
+      초기 조직 설정(구조/거버넌스/에이전트 팀)은 완료. 기술 작업은 CTO 주도로 진행 중.
